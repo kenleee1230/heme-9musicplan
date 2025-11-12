@@ -1,0 +1,1433 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+@font-face {
+    font-family: 'Smiley Sans';
+    src: url('fonts/SmileySans-Oblique.otf.woff2') format('woff2'),
+         url('fonts/SmileySans-Oblique.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #f5f5f5;
+    min-height: 100vh;
+    padding: 20px;
+    color: #1a1a1a;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+header {
+    background: white;
+    border-radius: 0;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
+}
+
+header h1 {
+    font-family: 'Smiley Sans', 'Noto Sans SC', sans-serif;
+    font-size: 2.5em;
+    margin-bottom: 12px;
+    color: #1a1a1a;
+    font-weight: normal;
+    letter-spacing: 0.02em;
+}
+
+.header-tagline {
+    font-size: 0.95em;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    font-weight: 300;
+    letter-spacing: 0.01em;
+    max-width: 800px;
+}
+
+.header-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.stat-card {
+    background: white;
+    color: #1a1a1a;
+    padding: 20px;
+    border-radius: 0;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.stat-label {
+    font-size: 0.9em;
+    opacity: 0.9;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 2.5em;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.stat-sublabel {
+    font-size: 0.8em;
+    opacity: 0.8;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+section {
+    background: white;
+    border-radius: 0;
+    padding: 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h2 {
+    font-family: 'Smiley Sans', 'Noto Sans SC', sans-serif;
+    font-size: 1.8em;
+    color: #333;
+    font-weight: normal;
+    letter-spacing: 0.02em;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: #1a1a1a;
+    color: white;
+    border: 1px solid #1a1a1a;
+}
+
+.btn-primary:hover {
+    background: #000;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-secondary {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background: #d0d0d0;
+}
+
+.songs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.song-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    border-left: 2px solid #1a1a1a;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.song-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.song-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.song-title {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #333;
+}
+
+.song-stage {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.stage-曲风研究 { background: #f5f5f5; color: #1a1a1a; border: 1px solid #d0d0d0; }
+.stage-Demo制作 { background: #f5f5f5; color: #1a1a1a; border: 1px solid #d0d0d0; }
+.stage-编曲 { background: #f5f5f5; color: #1a1a1a; border: 1px solid #d0d0d0; }
+.stage-混音母带 { background: #f5f5f5; color: #1a1a1a; border: 1px solid #d0d0d0; }
+.stage-队长审核 { background: #f5f5f5; color: #1a1a1a; border: 1px solid #d0d0d0; }
+.stage-校长审核 { background: #f5f5f5; color: #1a1a1a; border: 1px solid #d0d0d0; }
+.stage-已完成 { background: #1a1a1a; color: white; border: 1px solid #1a1a1a; }
+
+.song-progress {
+    margin-bottom: 10px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #1a1a1a;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.85em;
+    color: #666;
+    display: flex;
+    justify-content: space-between;
+}
+
+.song-info {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+    font-size: 0.9em;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-label {
+    color: #999;
+    font-size: 0.85em;
+    margin-bottom: 4px;
+}
+
+.info-value {
+    color: #333;
+    font-weight: 600;
+}
+
+.song-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.85em;
+}
+
+.btn-edit {
+    background: white;
+    color: #1a1a1a;
+    border: 1px solid #1a1a1a;
+}
+
+.btn-edit:hover {
+    background: #1a1a1a;
+    color: white;
+}
+
+.btn-delete {
+    background: white;
+    color: #1a1a1a;
+    border: 1px solid #1a1a1a;
+}
+
+.btn-delete:hover {
+    background: #1a1a1a;
+    color: white;
+}
+
+.timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.timeline-item {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 2px solid #1a1a1a;
+}
+
+.timeline-item h3 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.timeline-item p {
+    color: #666;
+    font-size: 0.9em;
+}
+
+/* 模态框样式 */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal[style*="display: block"] {
+    display: flex !important;
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 20px;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #1a1a1a;
+}
+
+.task-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.task-checklist label {
+    display: flex;
+    align-items: center;
+    font-weight: normal;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background 0.2s ease;
+}
+
+.task-checklist label:hover {
+    background: #e9ecef;
+}
+
+.task-checklist input[type="checkbox"] {
+    width: auto;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+@media (max-width: 1024px) {
+    main {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 视图切换按钮 */
+.view-toggle {
+    display: flex;
+    gap: 5px;
+    background: #f0f0f0;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.btn-toggle {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    color: #666;
+}
+
+.btn-toggle.active {
+    background: white;
+    color: #1a1a1a;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-toggle:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* 计时器浮动窗口 */
+.timer-floating {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: white;
+    border-radius: 0;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 250px;
+    border: 1px solid #1a1a1a;
+}
+
+.timer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.timer-header span {
+    font-weight: 600;
+    color: #333;
+}
+
+.timer-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+}
+
+.timer-close:hover {
+    color: #333;
+}
+
+.timer-display {
+    text-align: center;
+}
+
+.timer-time {
+    font-size: 2.5em;
+    font-weight: 300;
+    color: #1a1a1a;
+    margin-bottom: 15px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.05em;
+}
+
+.timer-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.timer-active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 甘特图区域 */
+.gantt-section {
+    background: white;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    width: 100%;
+}
+
+/* 甘特图样式 */
+.gantt-chart {
+    margin-top: 20px;
+    width: 100%;
+}
+
+.gantt-wrapper {
+    overflow-x: auto;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.gantt-timeline {
+    min-width: 100%;
+}
+
+.gantt-timeline-header {
+    display: flex;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.gantt-month {
+    flex: 1;
+    text-align: center;
+    font-weight: 600;
+    color: #666;
+    font-size: 0.9em;
+    padding: 5px;
+}
+
+.gantt-row {
+    display: flex;
+    margin-bottom: 15px;
+    align-items: center;
+    min-height: 60px;
+}
+
+.gantt-song-label {
+    width: 200px;
+    min-width: 200px;
+    padding-right: 20px;
+    border-right: 1px solid #e0e0e0;
+}
+
+.gantt-song-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.gantt-song-info {
+    font-size: 0.85em;
+    color: #666;
+}
+
+.gantt-song-bar-container {
+    flex: 1;
+    position: relative;
+    height: 40px;
+    background: #f5f5f5;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.gantt-song-bar {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: rgba(26, 26, 26, 0.1);
+    border-radius: 0;
+    border: 1px solid rgba(26, 26, 26, 0.2);
+}
+
+.gantt-song-progress {
+    height: 100%;
+    background: #1a1a1a;
+    border-radius: 0;
+    transition: width 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 1.8em;
+    }
+    
+    .header-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .header-actions {
+        justify-content: center;
+    }
+    
+    .song-info {
+        grid-template-columns: 1fr;
+    }
+
+    .timer-floating {
+        bottom: 20px;
+        right: 20px;
+        left: 20px;
+        min-width: auto;
+    }
+
+    .gantt-song-label {
+        width: 150px;
+        min-width: 150px;
+    }
+}
+
+/* 视图切换小按钮 */
+.view-toggle-small {
+    display: flex;
+    gap: 5px;
+    background: #f0f0f0;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.btn-toggle-small {
+    padding: 6px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.3s ease;
+    color: #666;
+}
+
+.btn-toggle-small.active {
+    background: white;
+    color: #1a1a1a;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-toggle-small:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* 甘特图按日显示 */
+.gantt-week {
+    flex: 0 0 auto;
+    min-width: 200px;
+    border-right: 1px solid #e0e0e0;
+    padding: 10px 8px;
+}
+
+.gantt-week-label {
+    font-size: 0.75em;
+    color: #999;
+    margin-bottom: 5px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.gantt-week-days {
+    display: flex;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+.gantt-day {
+    flex: 0 0 auto;
+    width: 28px;
+    font-size: 0.9em;
+    color: #666;
+    text-align: center;
+    padding: 6px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.gantt-day.today {
+    background: #1a1a1a;
+    color: white;
+    font-weight: 400;
+}
+
+.gantt-song-stage {
+    font-size: 0.75em;
+    color: #999;
+    margin-top: 4px;
+}
+
+/* 项目进度视图 */
+.project-view-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.project-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.project-card h3 {
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 1.2em;
+}
+
+.project-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.project-stat {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.project-stat-label {
+    font-size: 0.85em;
+    color: #999;
+    margin-bottom: 8px;
+}
+
+.project-stat-value {
+    font-size: 2em;
+    font-weight: 300;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+}
+
+.project-stat-sublabel {
+    font-size: 0.8em;
+    color: #666;
+}
+
+.project-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.project-progress-fill {
+    height: 100%;
+    background: #1a1a1a;
+    transition: width 0.3s ease;
+}
+
+.milestones {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.milestone {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    border-left: 4px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.milestone.achieved {
+    border-left-color: #1a1a1a;
+    background: #f5f5f5;
+}
+
+.milestone-icon {
+    font-size: 1.5em;
+}
+
+.milestone-info {
+    flex: 1;
+}
+
+.milestone-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.milestone-progress {
+    font-size: 0.85em;
+    color: #666;
+}
+
+.stage-distribution {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stage-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.stage-name {
+    width: 100px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.stage-bar {
+    flex: 1;
+    height: 20px;
+    background: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.stage-bar-fill {
+    height: 100%;
+    background: #1a1a1a;
+    transition: width 0.3s ease;
+}
+
+.stage-count {
+    width: 60px;
+    text-align: right;
+    font-size: 0.9em;
+    color: #666;
+    font-weight: 600;
+}
+
+/* 知识点卡片 */
+.knowledge-section {
+    background: white;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    margin-top: 30px;
+}
+
+.knowledge-card {
+    background: white;
+    border-radius: 0;
+    padding: 25px;
+    border-left: 2px solid #1a1a1a;
+    border: 1px solid #e0e0e0;
+}
+
+.knowledge-title {
+    font-family: 'Smiley Sans', 'Noto Sans SC', sans-serif;
+    font-size: 1.3em;
+    font-weight: normal;
+    color: #1a1a1a;
+    margin-bottom: 15px;
+    letter-spacing: 0.02em;
+}
+
+.knowledge-text {
+    font-size: 1em;
+    line-height: 1.6;
+    color: #333;
+}
+
+/* 鼓励模态框 */
+.encouragement-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.encouragement-content {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.encouragement-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    animation: bounce 0.6s ease;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.encouragement-content h3 {
+    font-size: 1.8em;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.encouragement-content p {
+    font-size: 1.1em;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+/* Tab 导航样式 */
+.tab-navigation {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    background: white;
+    padding: 10px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 15px 30px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #666;
+}
+
+.tab-btn:hover {
+    background: #f0f0f0;
+}
+
+.tab-btn.active {
+    background: #1a1a1a;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* 五度圈样式 */
+.circle-of-fifths-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    min-height: 800px;
+    overflow: visible;
+    width: 100%;
+}
+
+.circle-of-fifths-svg {
+    width: 100%;
+    max-width: 800px;
+    height: auto;
+    overflow: visible !important;
+}
+
+.circle-of-fifths-svg text {
+    fill: #1a1a1a !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.circle-key-group {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.circle-key-group:hover .circle-key-major {
+    fill: #1a1a1a;
+}
+
+.circle-key-group:hover .circle-key-minor {
+    fill: #1a1a1a;
+}
+
+/* 当hover到对应的group时，改变对应文字颜色 */
+.circle-key-group[data-type="major"]:hover ~ text.circle-key-text-major[data-key],
+.circle-key-group[data-type="major"]:hover ~ text.circle-key-text-major[data-key] {
+    fill: white !important;
+}
+
+.circle-key-group[data-type="minor"]:hover ~ text.circle-key-text-minor[data-key],
+.circle-key-group[data-type="minor"]:hover ~ text.circle-key-text-minor[data-key] {
+    fill: white !important;
+}
+
+/* 使用CSS变量和JavaScript来动态改变文字颜色 */
+.circle-key-text.hover-white {
+    fill: white !important;
+}
+
+.circle-key {
+    transition: all 0.2s ease;
+}
+
+.circle-key-text {
+    font-weight: 400;
+    pointer-events: none;
+    user-select: none;
+    fill: #1a1a1a !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.circle-key-major {
+    fill: white;
+    stroke: #1a1a1a;
+    stroke-width: 1;
+}
+
+.circle-key-minor {
+    fill: #f5f5f5;
+    stroke: #1a1a1a;
+    stroke-width: 1;
+}
+
+.circle-key-signature {
+    fill: #666;
+    font-size: 11px;
+    font-weight: 300;
+}
+
+/* 和弦进行样式 */
+.chord-progressions-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.progression-card {
+    background: white;
+    border-radius: 0;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-left: 2px solid #1a1a1a;
+}
+
+.progression-name {
+    font-family: 'Smiley Sans', 'Noto Sans SC', sans-serif;
+    font-size: 1.2em;
+    font-weight: normal;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+}
+
+.progression-degrees {
+    font-size: 1.1em;
+    color: #666;
+    margin-bottom: 15px;
+    font-family: 'Courier New', monospace;
+}
+
+.progression-chords {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.chord-badge {
+    background: #1a1a1a;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 0;
+    font-weight: 400;
+    font-size: 1em;
+    border: 1px solid #1a1a1a;
+}
+
+.progression-description {
+    font-size: 0.9em;
+    color: #666;
+    line-height: 1.6;
+}
+
+.key-selector {
+    padding: 8px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1em;
+    cursor: pointer;
+    background: white;
+    transition: border-color 0.3s ease;
+}
+
+.key-selector:focus {
+    outline: none;
+    border-color: #1a1a1a;
+}
+
+/* 和弦知识速查样式 */
+.chord-reference-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.chord-ref-tab {
+    padding: 12px 24px;
+    border: none;
+    background: transparent;
+    border-bottom: 3px solid transparent;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.3s ease;
+}
+
+.chord-ref-tab:hover {
+    color: #1a1a1a;
+}
+
+.chord-ref-tab.active {
+    color: #1a1a1a;
+    border-bottom-color: #1a1a1a;
+}
+
+.chord-ref-content {
+    display: none;
+}
+
+.chord-ref-content.active {
+    display: block;
+}
+
+.key-selector-container {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.key-selector-container label {
+    font-weight: 600;
+    color: #333;
+}
+
+/* 基础和弦类型样式 */
+.chord-types-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.chord-type-card {
+    background: white;
+    border-radius: 0;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-left: 2px solid #1a1a1a;
+}
+
+.chord-type-name {
+    font-family: 'Smiley Sans', 'Noto Sans SC', sans-serif;
+    font-size: 1.3em;
+    font-weight: normal;
+    color: #1a1a1a;
+    margin-bottom: 15px;
+    letter-spacing: 0.02em;
+}
+
+.chord-construction {
+    margin-bottom: 15px;
+}
+
+.chord-construction-label {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.chord-notes {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.chord-intervals {
+    font-size: 0.9em;
+    color: #999;
+    font-family: 'Courier New', monospace;
+}
+
+.chord-type-description {
+    font-size: 0.9em;
+    color: #666;
+    line-height: 1.6;
+}
+
+/* 和弦级数表样式 */
+.chord-degrees-table {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.degree-item {
+    background: white;
+    border-radius: 0;
+    padding: 15px;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+}
+
+.degree-number {
+    font-size: 1.1em;
+    font-weight: 400;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+}
+
+.degree-chord {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.degree-type {
+    font-size: 0.85em;
+    color: #666;
+}
+
+/* 和弦进行示例样式 */
+.chord-examples-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 中古调式样式 */
+.modal-scales-section {
+    background: white;
+    border-radius: 0;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
+}
+
+.modal-scale-selector {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.modal-scales-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.modal-scale-card {
+    background: white;
+    border-radius: 0;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-left: 2px solid #1a1a1a;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.modal-scale-card:hover {
+    background: #f5f5f5;
+    border-left-color: #1a1a1a;
+    transform: translateX(2px);
+}
+
+.modal-scale-name {
+    font-family: 'Smiley Sans', 'Noto Sans SC', sans-serif;
+    font-size: 1.3em;
+    font-weight: normal;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+}
+
+.modal-scale-description {
+    font-size: 0.85em;
+    color: #666;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.modal-scale-notes {
+    font-size: 1em;
+    color: #1a1a1a;
+    font-weight: 500;
+    margin-bottom: 6px;
+    font-family: 'Courier New', monospace;
+}
+
+.modal-scale-intervals {
+    font-size: 0.85em;
+    color: #999;
+    font-family: 'Courier New', monospace;
+}
+
+.chord-example-card {
+    background: white;
+    border-radius: 0;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-left: 2px solid #1a1a1a;
+}
+
+.example-name {
+    font-family: 'Smiley Sans', 'Noto Sans SC', sans-serif;
+    font-size: 1.2em;
+    font-weight: normal;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+}
+
+.example-progression {
+    font-size: 1.1em;
+    color: #333;
+    margin-bottom: 10px;
+    font-family: 'Courier New', monospace;
+}
+
+.example-description {
+    font-size: 0.9em;
+    color: #666;
+    line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+    .tab-navigation {
+        flex-direction: column;
+    }
+    
+    .circle-of-fifths-container {
+        padding: 20px;
+        min-height: 400px;
+    }
+    
+    .chord-types-list,
+    .chord-progressions-list {
+        grid-template-columns: 1fr;
+    }
+}
+
