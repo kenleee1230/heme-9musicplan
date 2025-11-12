@@ -717,6 +717,13 @@ section {
     font-weight: 400;
 }
 
+.gantt-day.start-date {
+    background: #28a745;
+    color: white;
+    font-weight: 600;
+    border: 2px solid #1e7e34;
+}
+
 .gantt-song-stage {
     font-size: 0.75em;
     color: #999;
