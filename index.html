@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>let'sgetpattern | HEMe Records</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>let'sgetpattern</h1>
+            <p class="header-tagline">To HEMe Records 未来制作人：<br/> 我们制作的是有其命运轨迹的东西，我们无法保证它「好运」，但我们可以保证它「是当下我能做到的最好」，且「品质越来越好」。它们的任何进步，源于我们自己的进步。</p>
+            <div class="header-stats">
+                <div class="stat-card">
+                    <div class="stat-label">剩余天数</div>
+                    <div class="stat-value" id="remainingDays">175</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">已完成</div>
+                    <div class="stat-value" id="completedSongs">0</div>
+                    <div class="stat-sublabel">/ 9 首</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">进行中</div>
+                    <div class="stat-value" id="inProgressSongs">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">总进度</div>
+                    <div class="stat-value" id="totalProgress">0%</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="exportData()">💾 导出备份</button>
+                <button class="btn btn-secondary" onclick="importData()">📥 导入备份</button>
+            </div>
+        </header>
+
+        <!-- Tab 导航 -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" onclick="switchTab('schedule')">📅 日程规划</button>
+            <button class="tab-btn" onclick="switchTab('theory')">🎵 音乐理论</button>
+        </div>
+
+        <!-- 日程规划 Tab -->
+        <main id="scheduleTab" class="tab-content active">
+            <section class="songs-section">
+                <div class="section-header">
+                    <h2>歌曲列表</h2>
+                    <button class="btn btn-primary" id="addSongBtn">+ 添加新歌</button>
+                </div>
+                <div id="songsList" class="songs-list"></div>
+            </section>
+
+            <section class="timeline-section">
+                <div class="section-header">
+                    <h2>时间线规划</h2>
+                    <div class="view-toggle-small">
+                        <button class="btn-toggle-small active" id="timelineViewBtn" onclick="switchTimelineView('timeline')">📅 时间线</button>
+                        <button class="btn-toggle-small" id="projectViewBtn" onclick="switchTimelineView('project')">📊 项目进度</button>
+                    </div>
+                </div>
+                <div id="timeline" class="timeline"></div>
+                <div id="projectView" class="project-view" style="display: none;"></div>
+            </section>
+
+            <section class="gantt-section">
+                <div class="section-header">
+                    <h2>📊 甘特图</h2>
+                    <div class="view-toggle-small">
+                        <button class="btn-toggle-small active" id="ganttViewBtn" onclick="switchGanttView('gantt')">📊 甘特图</button>
+                        <button class="btn-toggle-small" id="ganttListBtn" onclick="switchGanttView('list')" style="display: none;">📋 列表</button>
+                    </div>
+                </div>
+                <div id="ganttChart" class="gantt-chart"></div>
+            </section>
+
+            <section class="knowledge-section">
+                <h2>💡 编曲/混音小知识</h2>
+                <div id="knowledgeCard" class="knowledge-card">
+                    <div class="knowledge-content" id="knowledgeContent">加载中...</div>
+                    <button class="btn btn-small" onclick="showNextKnowledge()" style="margin-top: 15px;">下一个知识点</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- 音乐理论 Tab -->
+        <main id="theoryTab" class="tab-content">
+            <section class="circle-of-fifths-section">
+                <div class="section-header">
+                    <h2>🎼 五度圈</h2>
+                    <p style="font-size: 14px; color: #666; margin-top: 8px; font-weight: normal;">
+                        外圈为大调，内圈为对应关系小调（共享相同调号）
+                    </p>
+                </div>
+                <div id="circleOfFifths" class="circle-of-fifths-container"></div>
+            </section>
+
+            <section class="chord-progressions-section">
+                <div class="section-header">
+                    <h2>🎹 常见和弦级数套路</h2>
+                    <div>
+                        <label for="progressionKey" style="margin-right: 10px;">调性：</label>
+                        <select id="progressionKey" class="key-selector" onchange="updateChordProgressions()">
+                            <option value="C">C</option>
+                            <option value="G">G</option>
+                            <option value="D">D</option>
+                            <option value="A">A</option>
+                            <option value="E">E</option>
+                            <option value="B">B</option>
+                            <option value="F#">F#</option>
+                            <option value="C#">C#</option>
+                            <option value="F">F</option>
+                            <option value="Bb">Bb</option>
+                            <option value="Eb">Eb</option>
+                            <option value="Ab">Ab</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="chordProgressions" class="chord-progressions-list"></div>
+            </section>
+
+            <section class="chord-reference-section">
+                <div class="section-header">
+                    <h2>📚 和弦知识速查</h2>
+                </div>
+                <div class="chord-reference-tabs">
+                    <button class="chord-ref-tab active" onclick="switchChordRefTab('types')">基础和弦类型</button>
+                    <button class="chord-ref-tab" onclick="switchChordRefTab('degrees')">各调和弦级数表</button>
+                    <button class="chord-ref-tab" onclick="switchChordRefTab('examples')">和弦进行示例</button>
+                </div>
+                <div id="chordTypesContent" class="chord-ref-content active">
+                    <div id="chordTypesList" class="chord-types-list"></div>
+                </div>
+                <div id="chordDegreesContent" class="chord-ref-content">
+                    <div class="key-selector-container">
+                        <label for="degreeKey">选择调性：</label>
+                        <select id="degreeKey" class="key-selector" onchange="updateChordDegrees()">
+                            <option value="C">C</option>
+                            <option value="G">G</option>
+                            <option value="D">D</option>
+                            <option value="A">A</option>
+                            <option value="E">E</option>
+                            <option value="B">B</option>
+                            <option value="F#">F#</option>
+                            <option value="C#">C#</option>
+                            <option value="F">F</option>
+                            <option value="Bb">Bb</option>
+                            <option value="Eb">Eb</option>
+                            <option value="Ab">Ab</option>
+                        </select>
+                    </div>
+                    <div id="chordDegreesTable" class="chord-degrees-table"></div>
+                </div>
+                <div id="chordExamplesContent" class="chord-ref-content">
+                    <div id="chordExamplesList" class="chord-examples-list"></div>
+                </div>
+            </section>
+
+            <section class="modal-scales-section">
+                <div class="section-header">
+                    <h2>🎶 中古调式构成音速查</h2>
+                    <div class="modal-scale-selector">
+                        <label for="modalRootNote" style="margin-right: 10px;">根音：</label>
+                        <select id="modalRootNote" class="key-selector" onchange="renderModalScales()">
+                            <option value="C">C</option>
+                            <option value="C#">C#</option>
+                            <option value="D">D</option>
+                            <option value="D#">D#</option>
+                            <option value="E">E</option>
+                            <option value="F">F</option>
+                            <option value="F#">F#</option>
+                            <option value="G">G</option>
+                            <option value="G#">G#</option>
+                            <option value="A">A</option>
+                            <option value="A#">A#</option>
+                            <option value="B">B</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="modalScalesList" class="modal-scales-list"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 添加/编辑歌曲模态框 -->
+    <div id="songModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">添加新歌</h2>
+            <form id="songForm">
+                <input type="hidden" id="songId">
+                <div class="form-group">
+                    <label for="songName">歌曲名称</label>
+                    <input type="text" id="songName" required>
+                </div>
+                <div class="form-group">
+                    <label for="songGenre">子曲风</label>
+                    <input type="text" id="songGenre" placeholder="例如：Future Bass, Deep House">
+                    <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
+                        建议：90%精力用于制作你当下正喜欢的曲风。因为你喜欢，所以听的多；听的多，就能更快做出更好的选择。
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label for="estimatedHours">预计有效时长（小时）</label>
+                    <input type="number" id="estimatedHours" min="20" max="60" value="40" step="1">
+                    <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
+                        一首歌40有效小时。每天最多6小时，推荐每天2小时（已养成习惯）。每天2小时则20天完成一首歌。
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label for="isNewGenre">是否为新曲风</label>
+                    <input type="checkbox" id="isNewGenre">
+                    <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
+                        新曲风需要至少一周前期准备：听10张专辑，搜索曲风介绍（BPM、配器音色、代表人物、经典曲目、最新曲目）
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label>当前阶段</label>
+                    <select id="currentStage">
+                        <option value="曲风研究">曲风研究</option>
+                        <option value="Demo制作">Demo制作</option>
+                        <option value="编曲">编曲</option>
+                        <option value="混音母带">混音母带</option>
+                        <option value="队长审核">队长审核</option>
+                        <option value="校长审核">校长审核</option>
+                        <option value="已完成">已完成</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>任务进度</label>
+                    <div class="task-checklist">
+                        <label><input type="checkbox" id="task1"> 听10张专辑，确定子曲风</label>
+                        <label><input type="checkbox" id="task2"> 找到3首参考歌，发给队长</label>
+                        <label><input type="checkbox" id="task3"> 制作Demo，自己觉得OK</label>
+                        <label><input type="checkbox" id="task4"> Demo发给队长，获取意见</label>
+                        <label><input type="checkbox" id="task5"> 完成编曲</label>
+                        <label><input type="checkbox" id="task6"> 编曲发给队长，获取意见</label>
+                        <label><input type="checkbox" id="task7"> 编曲OK，开始混音母带</label>
+                        <label><input type="checkbox" id="task8"> 混音母带发给队长，获取意见</label>
+                        <label><input type="checkbox" id="task9"> 队长OK，发给校长</label>
+                        <label><input type="checkbox" id="task10"> 校长OK，完成制作</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="timeSpent">已用时长（小时）</label>
+                    <input type="number" id="timeSpent" min="0" step="0.5" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="notes">备注</label>
+                    <textarea id="notes" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 鼓励提示框 -->
+    <div id="encouragementModal" class="encouragement-modal" style="display: none;">
+        <div class="encouragement-content">
+            <div class="encouragement-icon" id="encouragementIcon">🎉</div>
+            <h3 id="encouragementTitle">太棒了！</h3>
+            <p id="encouragementMessage"></p>
+            <button class="btn btn-primary" onclick="closeEncouragement()">继续加油！</button>
+        </div>
+    </div>
+
+    <!-- 计时器浮动窗口 -->
+    <div id="timerFloating" class="timer-floating" style="display: none;">
+        <div class="timer-header">
+            <span id="timerSongName">正在计时</span>
+            <button class="timer-close" onclick="stopTimer()">&times;</button>
+        </div>
+        <div class="timer-display">
+            <div class="timer-time" id="timerDisplay">00:00:00</div>
+            <div class="timer-controls">
+                <button class="btn btn-small" id="timerPauseBtn" onclick="pauseTimer()">暂停</button>
+                <button class="btn btn-small" id="timerResumeBtn" onclick="resumeTimer()" style="display: none;">继续</button>
+                <button class="btn btn-small btn-delete" onclick="stopTimer()">停止</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
