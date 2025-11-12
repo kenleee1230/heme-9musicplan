@@ -1,11 +1,44 @@
 // 数据管理
 const STORAGE_KEY = 'musicplan_songs';
-const TOTAL_DAYS = 180;
-const REMAINING_DAYS = 175;
+const START_DATE_KEY = 'musicplan_start_date';
+const TOTAL_DAYS = 180; // 总天数（从开始日期算起）
 const TARGET_SONGS = 9;
 const HOURS_PER_SONG = 40; // 一首歌40有效小时
 const MAX_HOURS_PER_DAY = 6; // 每天最多6有效小时
 const RECOMMENDED_HOURS_PER_DAY = 2; // 推荐每天2小时（已养成的习惯）
+
+// 获取或设置开始日期
+function getStartDate() {
+    const saved = localStorage.getItem(START_DATE_KEY);
+    if (saved) {
+        const date = new Date(saved);
+        date.setHours(0, 0, 0, 0);
+        return date;
+    }
+    // 如果没有设置，默认使用2025-11-08作为开始日期
+    const defaultDate = new Date('2025-11-08');
+    defaultDate.setHours(0, 0, 0, 0);
+    setStartDate(defaultDate);
+    return defaultDate;
+}
+
+// 设置开始日期
+function setStartDate(date) {
+    localStorage.setItem(START_DATE_KEY, date.toISOString());
+}
+
+// 计算剩余天数（动态计算）
+function getRemainingDays() {
+    const startDate = getStartDate();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + TOTAL_DAYS);
+    
+    const remaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+    return Math.max(0, remaining); // 确保不为负数
+}
 
 // 任务列表
 const TASKS = [
@@ -339,6 +372,12 @@ function exportData() {
             }
         });
 
+        // 保存开始日期
+        const startDate = localStorage.getItem(START_DATE_KEY);
+        if (startDate) {
+            backupData.data.startDate = startDate;
+        }
+
         // 创建 JSON 字符串
         const jsonString = JSON.stringify(backupData, null, 2);
 
@@ -428,6 +467,11 @@ function importData() {
                     });
                 }
 
+                // 恢复开始日期
+                if (backupData.data.startDate) {
+                    localStorage.setItem(START_DATE_KEY, backupData.data.startDate);
+                }
+
                 // 刷新页面显示
                 renderSongs();
                 renderTimeline();
@@ -487,7 +531,7 @@ function updateStats() {
     document.getElementById('completedSongs').textContent = completed;
     document.getElementById('inProgressSongs').textContent = inProgress;
     document.getElementById('totalProgress').textContent = totalProgress + '%';
-    document.getElementById('remainingDays').textContent = REMAINING_DAYS;
+    document.getElementById('remainingDays').textContent = getRemainingDays();
 }
 
 // 渲染歌曲列表
@@ -591,18 +635,33 @@ function renderTimeline() {
     const daysAtRecommended = totalHours / RECOMMENDED_HOURS_PER_DAY;
     const daysAtMax = totalHours / MAX_HOURS_PER_DAY;
     
+    const remainingDays = getRemainingDays();
+    const startDate = getStartDate();
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + TOTAL_DAYS);
+    
+    // 格式化日期显示
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    
     const timelineItem = document.createElement('div');
     timelineItem.className = 'timeline-item';
     timelineItem.innerHTML = `
         <h3>📅 时间规划</h3>
-        <p><strong>目标：</strong>${REMAINING_DAYS} 天内完成 ${TARGET_SONGS} 首歌</p>
+        <p><strong>开始日期：</strong>${formatDate(startDate)}</p>
+        <p><strong>结束日期：</strong>${formatDate(endDate)}</p>
+        <p><strong>目标：</strong>${remainingDays} 天内完成 ${TARGET_SONGS} 首歌（共 ${TOTAL_DAYS} 天）</p>
         <p><strong>每首歌：</strong>${avgHoursPerSong.toFixed(0)} 有效小时</p>
         <p><strong>总工作量：</strong>${totalHours.toFixed(0)} 有效小时</p>
         <p style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
             <strong>时间安排：</strong><br>
             • 每天 ${RECOMMENDED_HOURS_PER_DAY} 小时（已养成习惯）：${daysAtRecommended.toFixed(0)} 天完成，约 ${(daysAtRecommended / avgHoursPerSong).toFixed(1)} 首歌/周<br>
             • 每天 ${MAX_HOURS_PER_DAY} 小时（最大强度）：${daysAtMax.toFixed(0)} 天完成，约 ${(daysAtMax / avgHoursPerSong).toFixed(1)} 首歌/周<br>
-            <span style="color: #28a745; font-weight: 600;">✓ 维持每天2小时的习惯，180天可以完成9首歌，一定能拿回全部押金！</span>
+            <span style="color: #28a745; font-weight: 600;">✓ 维持每天2小时的习惯，${TOTAL_DAYS}天可以完成9首歌，一定能拿回全部押金！</span>
         </p>
         <p style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
             <strong>时间分配建议：</strong><br>
@@ -799,9 +858,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 点击模态框外部关闭
     window.addEventListener('click', (event) => {
-        const modal = document.getElementById('songModal');
-        if (event.target === modal) {
+        const songModal = document.getElementById('songModal');
+        if (event.target === songModal) {
             closeModal();
+        }
+        const startDateModal = document.getElementById('startDateModal');
+        if (event.target === startDateModal) {
+            closeStartDateModal();
         }
     });
 
@@ -997,11 +1060,13 @@ function renderGantt() {
         return;
     }
 
-    // 计算日期范围（从今天开始，175天）
+    // 计算日期范围（从开始日期到结束日期）
+    const startDate = getStartDate();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const endDate = new Date(today);
-    endDate.setDate(today.getDate() + REMAINING_DAYS);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + TOTAL_DAYS);
+    const remainingDays = getRemainingDays();
 
     // 计算每首歌的平均时间
     const avgHoursPerSong = songs.length > 0
@@ -1018,9 +1083,9 @@ function renderGantt() {
     const timeline = document.createElement('div');
     timeline.className = 'gantt-timeline';
     
-    // 生成所有日期
+    // 生成所有日期（从开始日期到结束日期）
     const dates = [];
-    const currentDate = new Date(today);
+    const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
         dates.push(new Date(currentDate));
         currentDate.setDate(currentDate.getDate() + 1);
@@ -1044,7 +1109,11 @@ function renderGantt() {
         weekDiv.innerHTML = `
             <div class="gantt-week-label">${firstDay.getMonth() + 1}/${firstDay.getDate()}</div>
             <div class="gantt-week-days">
-                ${week.map(day => `<div class="gantt-day ${day.getTime() === today.getTime() ? 'today' : ''}">${day.getDate()}</div>`).join('')}
+                ${week.map(day => {
+                    const isToday = day.getTime() === today.getTime();
+                    const isStartDate = day.getTime() === startDate.getTime();
+                    return `<div class="gantt-day ${isToday ? 'today' : ''} ${isStartDate ? 'start-date' : ''}">${day.getDate()}</div>`;
+                }).join('')}
             </div>
         `;
         timelineHeader.appendChild(weekDiv);
@@ -1058,12 +1127,12 @@ function renderGantt() {
         const estimatedDays = Math.max(1, remainingTime / hoursPerDay);
         
         // 计算开始和结束日期
-        const startOffset = index * (REMAINING_DAYS / TARGET_SONGS);
-        const startDate = new Date(today);
-        startDate.setDate(today.getDate() + Math.floor(startOffset));
+        const startOffset = index * (TOTAL_DAYS / TARGET_SONGS);
+        const songStartDate = new Date(startDate);
+        songStartDate.setDate(startDate.getDate() + Math.floor(startOffset));
         
-        const endDateForSong = new Date(startDate);
-        endDateForSong.setDate(startDate.getDate() + Math.ceil(estimatedDays));
+        const endDateForSong = new Date(songStartDate);
+        endDateForSong.setDate(songStartDate.getDate() + Math.ceil(estimatedDays));
 
         const row = document.createElement('div');
         row.className = 'gantt-row';
@@ -1082,7 +1151,7 @@ function renderGantt() {
         songBar.className = 'gantt-song-bar-container';
         
         // 计算进度条位置和宽度（按天数）
-        const daysFromStart = Math.floor((startDate - today) / (1000 * 60 * 60 * 24));
+        const daysFromStart = Math.floor((songStartDate - startDate) / (1000 * 60 * 60 * 24));
         const dayWidth = 100 / dates.length;
         const startPercent = daysFromStart * dayWidth;
         const widthPercent = estimatedDays * dayWidth;
@@ -2139,6 +2208,52 @@ function renderChordExamples() {
     });
 }
 
+// 打开设置开始日期模态框
+function openStartDateModal() {
+    const modal = document.getElementById('startDateModal');
+    const startDate = getStartDate();
+    const dateInput = document.getElementById('startDateInput');
+    
+    // 将日期格式化为 YYYY-MM-DD
+    const year = startDate.getFullYear();
+    const month = String(startDate.getMonth() + 1).padStart(2, '0');
+    const day = String(startDate.getDate()).padStart(2, '0');
+    dateInput.value = `${year}-${month}-${day}`;
+    
+    modal.style.display = 'flex';
+}
+
+// 关闭设置开始日期模态框
+function closeStartDateModal() {
+    document.getElementById('startDateModal').style.display = 'none';
+}
+
+// 保存开始日期
+function saveStartDate(event) {
+    event.preventDefault();
+    const dateInput = document.getElementById('startDateInput');
+    const dateValue = dateInput.value;
+    
+    if (!dateValue) {
+        alert('请选择开始日期');
+        return;
+    }
+    
+    const selectedDate = new Date(dateValue);
+    selectedDate.setHours(0, 0, 0, 0);
+    setStartDate(selectedDate);
+    
+    // 刷新所有显示
+    renderSongs();
+    renderTimeline();
+    renderProjectView();
+    renderGantt();
+    updateStats();
+    
+    closeStartDateModal();
+    alert('开始日期已更新！');
+}
+
 // 导出函数供全局使用
 window.editSong = editSong;
 window.deleteSong = deleteSong;
@@ -2157,4 +2272,7 @@ window.updateChordDegrees = updateChordDegrees;
 window.renderModalScales = renderModalScales;
 window.exportData = exportData;
 window.importData = importData;
+window.openStartDateModal = openStartDateModal;
+window.closeStartDateModal = closeStartDateModal;
+window.saveStartDate = saveStartDate;
 
