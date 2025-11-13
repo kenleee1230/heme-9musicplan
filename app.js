@@ -1,11 +1,14 @@
 // 数据管理
 const STORAGE_KEY = 'musicplan_songs';
 const START_DATE_KEY = 'musicplan_start_date';
+const TIME_CONFIG_KEY = 'musicplan_time_config';
 const TOTAL_DAYS = 180; // 总天数（从开始日期算起）
 const TARGET_SONGS = 9;
 const HOURS_PER_SONG = 40; // 一首歌40有效小时
 const MAX_HOURS_PER_DAY = 6; // 每天最多6有效小时
 const RECOMMENDED_HOURS_PER_DAY = 2; // 推荐每天2小时（已养成的习惯）
+const DEFAULT_LEARNING_HOURS = 0.5; // 默认每日学习时长
+const DEFAULT_MAKING_HOURS = 2; // 默认每日制作时长
 
 // 获取或设置开始日期
 function getStartDate() {
@@ -25,6 +28,39 @@ function getStartDate() {
 // 设置开始日期
 function setStartDate(date) {
     localStorage.setItem(START_DATE_KEY, date.toISOString());
+}
+
+// 时间配置管理
+function getTimeConfig() {
+    const saved = localStorage.getItem(TIME_CONFIG_KEY);
+    if (saved) {
+        return JSON.parse(saved);
+    }
+    const defaultConfig = {
+        dailyLearningHours: DEFAULT_LEARNING_HOURS,
+        dailyMakingHours: DEFAULT_MAKING_HOURS
+    };
+    setTimeConfig(defaultConfig);
+    return defaultConfig;
+}
+
+function setTimeConfig(config) {
+    localStorage.setItem(TIME_CONFIG_KEY, JSON.stringify(config));
+}
+
+function updateTimeConfig(learningHours, makingHours) {
+    const config = {
+        dailyLearningHours: Math.max(0, Math.min(2, learningHours)),
+        dailyMakingHours: Math.max(0, Math.min(MAX_HOURS_PER_DAY, makingHours))
+    };
+    setTimeConfig(config);
+    return config;
+}
+
+// 获取每日实际制作时间
+function getDailyMakingTime() {
+    const config = getTimeConfig();
+    return Math.max(0, config.dailyMakingHours - config.dailyLearningHours);
 }
 
 // 计算剩余天数（动态计算）
@@ -52,6 +88,20 @@ const TASKS = [
     '混音母带发给队长，获取意见',
     '队长OK，发给校长',
     '校长OK，完成制作'
+];
+
+// 任务时长默认占比（基于40小时总时长）
+const TASK_TIME_RATIOS = [
+    0.175, // 新曲风前期准备：7小时（17.5%）- 如果是新曲风，否则为0
+    0.05,  // 确定子曲风：2小时（5%）
+    0.20,  // 制作Demo：8小时（20%）
+    0.025, // Demo审核：1小时（2.5%）
+    0.30,  // 完成编曲：12小时（30%）
+    0.025, // 编曲审核：1小时（2.5%）
+    0.15,  // 混音母带：6小时（15%）
+    0.025, // 混音审核：1小时（2.5%）
+    0.025, // 队长审核：1小时（2.5%）
+    0.025  // 校长审核：1小时（2.5%）
 ];
 
 // 阶段列表
@@ -359,6 +409,7 @@ function exportData() {
             data: {
                 songs: localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY)) : [],
                 timer: localStorage.getItem(TIMER_STORAGE_KEY) ? JSON.parse(localStorage.getItem(TIMER_STORAGE_KEY)) : null,
+                timeConfig: localStorage.getItem(TIME_CONFIG_KEY) ? JSON.parse(localStorage.getItem(TIME_CONFIG_KEY)) : null,
                 milestones: {}
             }
         };
@@ -471,12 +522,18 @@ function importData() {
                 if (backupData.data.startDate) {
                     localStorage.setItem(START_DATE_KEY, backupData.data.startDate);
                 }
+                
+                // 恢复时间配置
+                if (backupData.data.timeConfig) {
+                    localStorage.setItem(TIME_CONFIG_KEY, JSON.stringify(backupData.data.timeConfig));
+                }
 
                 // 刷新页面显示
                 renderSongs();
                 renderTimeline();
                 renderProjectView();
                 renderGantt();
+                renderDailyPlan();
                 updateStats();
 
                 // 显示成功提示
@@ -515,9 +572,177 @@ function calculateProgress(song) {
 function calculateTimeDistribution(estimatedHours) {
     const composition = estimatedHours * 0.7; // 编曲作曲 70%
     const mixing = estimatedHours * 0.3; // 混音母带 30%
-    const daysAtRecommended = estimatedHours / RECOMMENDED_HOURS_PER_DAY; // 按每天2小时计算所需天数
+    const dailyMakingTime = getDailyMakingTime();
+    const daysAtRecommended = dailyMakingTime > 0 ? estimatedHours / dailyMakingTime : 0; // 按实际制作时间计算所需天数
     const daysAtMax = estimatedHours / MAX_HOURS_PER_DAY; // 按每天6小时计算所需天数
     return { composition, mixing, total: estimatedHours, daysAtRecommended, daysAtMax };
+}
+
+// 任务时长管理
+function calculateTaskHours(estimatedHours, isNewGenre = false) {
+    const taskHours = [];
+    let remainingHours = estimatedHours;
+    
+    // 如果是新曲风，第一个任务有占比，否则为0
+    const firstTaskRatio = isNewGenre ? TASK_TIME_RATIOS[0] : 0;
+    
+    // 计算其他任务的总占比
+    const otherTasksRatio = TASK_TIME_RATIOS.slice(1).reduce((sum, ratio) => sum + ratio, 0);
+    const totalRatio = firstTaskRatio + otherTasksRatio;
+    
+    TASK_TIME_RATIOS.forEach((ratio, index) => {
+        if (index === 0 && !isNewGenre) {
+            taskHours.push(0);
+        } else {
+            const hours = (ratio / totalRatio) * remainingHours;
+            taskHours.push(Math.round(hours * 10) / 10); // 保留一位小数
+        }
+    });
+    
+    return taskHours;
+}
+
+// 更新任务时长
+function updateTaskHours(song, taskIndex, newHours) {
+    if (!song.taskHours) {
+        song.taskHours = calculateTaskHours(song.estimatedHours, song.isNewGenre);
+    }
+    song.taskHours[taskIndex] = Math.max(0, newHours);
+    // 重新计算总时长
+    const total = song.taskHours.reduce((sum, h) => sum + h, 0);
+    song.estimatedHours = total;
+    return song;
+}
+
+// 生成每日任务分配计划
+function generateDailyPlan(songs) {
+    const timeConfig = getTimeConfig();
+    const dailyMakingTime = getDailyMakingTime();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // 获取进行中的歌曲（isActive为true或未设置，且未完成）
+    const activeSongs = songs.filter(song => {
+        const isActive = song.isActive !== false; // 默认为true
+        const isCompleted = song.currentStage === '已完成';
+        return isActive && !isCompleted;
+    });
+    
+    if (activeSongs.length === 0) {
+        return [];
+    }
+    
+    // 为每首歌初始化任务时长（如果还没有）
+    activeSongs.forEach(song => {
+        if (!song.taskHours) {
+            song.taskHours = calculateTaskHours(song.estimatedHours, song.isNewGenre);
+        }
+    });
+    
+    // 生成每日计划
+    const dailyPlan = [];
+    const startDate = getStartDate();
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + TOTAL_DAYS);
+    
+    // 为每首歌创建任务队列
+    const songQueues = activeSongs.map(song => {
+        const completedTasks = song.completedTasks || [];
+        const queue = [];
+        
+        song.taskHours.forEach((hours, taskIndex) => {
+            if (!completedTasks.includes(taskIndex) && hours > 0) {
+                queue.push({
+                    songId: song.id,
+                    songName: song.name,
+                    taskIndex: taskIndex,
+                    taskName: TASKS[taskIndex],
+                    hours: hours,
+                    remainingHours: hours,
+                    isNewGenre: song.isNewGenre
+                });
+            }
+        });
+        
+        return {
+            songId: song.id,
+            songName: song.name,
+            queue: queue,
+            currentTaskIndex: 0
+        };
+    });
+    
+    // 从今天开始分配任务
+    let currentDate = new Date(today);
+    if (currentDate < startDate) {
+        currentDate = new Date(startDate);
+    }
+    
+    // 分配任务到每一天
+    while (currentDate <= endDate) {
+        const dayPlan = {
+            date: new Date(currentDate),
+            learningTask: {
+                type: 'learning',
+                name: '学习时间',
+                hours: timeConfig.dailyLearningHours,
+                description: '听歌分析/学习技巧'
+            },
+            makingTasks: [],
+            totalHours: timeConfig.dailyLearningHours
+        };
+        
+        let remainingMakingTime = dailyMakingTime;
+        
+        // 为每首歌分配任务
+        songQueues.forEach(songQueue => {
+            if (songQueue.currentTaskIndex >= songQueue.queue.length) {
+                return; // 这首歌的所有任务已完成
+            }
+            
+            const currentTask = songQueue.queue[songQueue.currentTaskIndex];
+            if (currentTask.remainingHours <= 0) {
+                songQueue.currentTaskIndex++;
+                return;
+            }
+            
+            // 计算今天可以分配多少时间给这个任务
+            const hoursToAllocate = Math.min(currentTask.remainingHours, remainingMakingTime);
+            
+            if (hoursToAllocate > 0) {
+                dayPlan.makingTasks.push({
+                    type: 'making',
+                    songId: currentTask.songId,
+                    songName: currentTask.songName,
+                    taskIndex: currentTask.taskIndex,
+                    taskName: currentTask.taskName,
+                    hours: hoursToAllocate
+                });
+                
+                currentTask.remainingHours -= hoursToAllocate;
+                remainingMakingTime -= hoursToAllocate;
+                dayPlan.totalHours += hoursToAllocate;
+                
+                // 如果这个任务完成了，移到下一个任务
+                if (currentTask.remainingHours <= 0) {
+                    songQueue.currentTaskIndex++;
+                }
+            }
+        });
+        
+        dailyPlan.push(dayPlan);
+        
+        // 检查是否所有任务都已完成
+        const allDone = songQueues.every(sq => sq.currentTaskIndex >= sq.queue.length);
+        if (allDone) {
+            break;
+        }
+        
+        // 移动到下一天
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return dailyPlan;
 }
 
 // 更新统计信息
@@ -729,7 +954,72 @@ function openAddModal() {
         estimatedHoursInput.value = HOURS_PER_SONG;
     }
     
+    // 隐藏任务时长编辑区域
+    const taskHoursGroup = document.getElementById('taskHoursGroup');
+    if (taskHoursGroup) {
+        taskHoursGroup.style.display = 'none';
+    }
+    
     modal.style.display = 'flex';
+}
+
+// 更新任务时长显示
+function updateTaskHoursDisplay() {
+    const estimatedHours = parseFloat(document.getElementById('estimatedHours').value) || HOURS_PER_SONG;
+    const isNewGenre = document.getElementById('isNewGenre').checked;
+    const taskHours = calculateTaskHours(estimatedHours, isNewGenre);
+    
+    const taskHoursList = document.getElementById('taskHoursList');
+    const taskHoursGroup = document.getElementById('taskHoursGroup');
+    
+    if (!taskHoursList || !taskHoursGroup) return;
+    
+    taskHoursList.innerHTML = '';
+    
+    taskHours.forEach((hours, index) => {
+        // 如果是新曲风，第一个任务显示；如果不是新曲风，第一个任务隐藏
+        if (index === 0 && !isNewGenre) {
+            return;
+        }
+        
+        const taskItem = document.createElement('div');
+        taskItem.className = 'task-hour-item';
+        taskItem.innerHTML = `
+            <label class="task-hour-label">${TASKS[index]}</label>
+            <div class="task-hour-controls">
+                <button type="button" class="btn btn-small" onclick="adjustTaskHour(${index}, -0.5)">-0.5</button>
+                <input type="number" class="task-hour-input" data-task-index="${index}" value="${hours.toFixed(1)}" min="0" step="0.5" onchange="recalculateTotalHours()">
+                <button type="button" class="btn btn-small" onclick="adjustTaskHour(${index}, 0.5)">+0.5</button>
+            </div>
+        `;
+        taskHoursList.appendChild(taskItem);
+    });
+    
+    taskHoursGroup.style.display = 'block';
+    recalculateTotalHours();
+}
+
+// 调整任务时长
+function adjustTaskHour(taskIndex, delta) {
+    const input = document.querySelector(`.task-hour-input[data-task-index="${taskIndex}"]`);
+    if (input) {
+        const currentValue = parseFloat(input.value) || 0;
+        input.value = Math.max(0, currentValue + delta).toFixed(1);
+        recalculateTotalHours();
+    }
+}
+
+// 重新计算总时长
+function recalculateTotalHours() {
+    const inputs = document.querySelectorAll('.task-hour-input');
+    let total = 0;
+    inputs.forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+    const estimatedHoursInput = document.getElementById('estimatedHours');
+    if (estimatedHoursInput) {
+        estimatedHoursInput.value = Math.round(total * 10) / 10;
+    }
 }
 
 // 编辑歌曲
@@ -755,6 +1045,24 @@ function editSong(id) {
             checkbox.checked = song.completedTasks?.includes(index) || false;
         }
     });
+    
+    // 显示任务时长
+    updateTaskHoursDisplay();
+    
+    // 如果有保存的任务时长，使用保存的值
+    if (song.taskHours && song.taskHours.length > 0) {
+        const taskHoursList = document.getElementById('taskHoursList');
+        if (taskHoursList) {
+            const inputs = taskHoursList.querySelectorAll('.task-hour-input');
+            inputs.forEach((input, index) => {
+                const taskIndex = parseInt(input.getAttribute('data-task-index'));
+                if (song.taskHours[taskIndex] !== undefined) {
+                    input.value = song.taskHours[taskIndex].toFixed(1);
+                }
+            });
+            recalculateTotalHours();
+        }
+    }
 
     const modal = document.getElementById('songModal');
     if (modal) {
@@ -771,6 +1079,7 @@ function deleteSong(id) {
         renderTimeline();
         renderProjectView();
         renderGantt();
+        renderDailyPlan();
         updateStats();
     }
 }
@@ -782,7 +1091,7 @@ function saveSong(event) {
     const id = document.getElementById('songId').value || generateId();
     const name = document.getElementById('songName').value;
     const genre = document.getElementById('songGenre').value;
-    const estimatedHours = parseFloat(document.getElementById('estimatedHours').value) || HOURS_PER_SONG;
+    let estimatedHours = parseFloat(document.getElementById('estimatedHours').value) || HOURS_PER_SONG;
     const currentStage = document.getElementById('currentStage').value;
     const timeSpent = parseFloat(document.getElementById('timeSpent').value) || 0;
     const notes = document.getElementById('notes').value;
@@ -796,6 +1105,39 @@ function saveSong(event) {
         }
     });
 
+    // 获取或计算任务时长
+    let taskHours = null;
+    if (currentEditingId) {
+        const existingSong = songs.find(s => s.id === currentEditingId);
+        if (existingSong && existingSong.taskHours) {
+            taskHours = existingSong.taskHours;
+        }
+    }
+    
+    // 如果没有任务时长，自动计算
+    if (!taskHours) {
+        taskHours = calculateTaskHours(estimatedHours, isNewGenre);
+    }
+    
+    // 获取任务时长输入（如果存在）
+    const taskHoursInputs = document.querySelectorAll('.task-hour-input');
+    if (taskHoursInputs.length > 0) {
+        // 初始化任务时长数组
+        taskHours = new Array(TASKS.length).fill(0);
+        taskHoursInputs.forEach((input) => {
+            const taskIndex = parseInt(input.getAttribute('data-task-index'));
+            const hours = parseFloat(input.value) || 0;
+            if (taskIndex >= 0 && taskIndex < TASKS.length) {
+                taskHours[taskIndex] = hours;
+            }
+        });
+        // 重新计算总时长
+        const total = taskHours.reduce((sum, h) => sum + h, 0);
+        if (total > 0) {
+            estimatedHours = total;
+        }
+    }
+
     const songData = {
         id,
         name,
@@ -806,6 +1148,8 @@ function saveSong(event) {
         notes,
         completedTasks,
         isNewGenre,
+        taskHours: taskHours,
+        isActive: true, // 默认激活
         updatedAt: new Date().toISOString()
     };
 
@@ -826,6 +1170,7 @@ function saveSong(event) {
     renderTimeline();
     renderProjectView();
     renderGantt();
+    renderDailyPlan(); // 渲染每日任务视图
     updateStats();
     checkAndShowEncouragement();
     closeModal();
@@ -876,6 +1221,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTimeline();
     renderProjectView();
     renderGantt();
+    renderDailyPlan();
     updateStats();
     initKnowledge();
 
@@ -1040,6 +1386,7 @@ function stopTimer() {
     renderTimeline();
     renderProjectView();
     renderGantt();
+    renderDailyPlan();
     updateStats();
     checkAndShowEncouragement();
 }
@@ -1285,6 +1632,162 @@ function renderProjectView() {
     container.appendChild(projectView);
 }
 
+// 渲染每日任务日历视图
+let currentCalendarMonth = new Date().getMonth();
+let currentCalendarYear = new Date().getFullYear();
+
+function renderDailyPlan() {
+    const container = document.getElementById('dailyPlanView');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (songs.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">还没有添加歌曲，点击上方按钮添加第一首歌吧！</p>';
+        return;
+    }
+    
+    // 生成每日计划
+    const dailyPlan = generateDailyPlan(songs);
+    
+    if (dailyPlan.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">没有进行中的歌曲</p>';
+        return;
+    }
+    
+    // 创建日历容器
+    const calendarWrapper = document.createElement('div');
+    calendarWrapper.className = 'calendar-wrapper';
+    
+    // 创建月份导航
+    const monthNav = document.createElement('div');
+    monthNav.className = 'calendar-month-nav';
+    monthNav.innerHTML = `
+        <button class="btn btn-small" onclick="changeCalendarMonth(-1)">← 上个月</button>
+        <h3>${currentCalendarYear}年 ${currentCalendarMonth + 1}月</h3>
+        <button class="btn btn-small" onclick="changeCalendarMonth(1)">下个月 →</button>
+    `;
+    calendarWrapper.appendChild(monthNav);
+    
+    // 创建日历网格
+    const calendarGrid = document.createElement('div');
+    calendarGrid.className = 'calendar-grid';
+    
+    // 获取当月第一天和最后一天
+    const firstDay = new Date(currentCalendarYear, currentCalendarMonth, 1);
+    const lastDay = new Date(currentCalendarYear, currentCalendarMonth + 1, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // 获取第一天是星期几（0=周日，1=周一...）
+    const firstDayOfWeek = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    
+    // 创建星期标题
+    const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+    weekDays.forEach(day => {
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'calendar-weekday';
+        dayHeader.textContent = day;
+        calendarGrid.appendChild(dayHeader);
+    });
+    
+    // 填充空白（月初）
+    for (let i = 0; i < firstDayOfWeek; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'calendar-day empty';
+        calendarGrid.appendChild(emptyDay);
+    }
+    
+    // 创建每一天
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(currentCalendarYear, currentCalendarMonth, day);
+        date.setHours(0, 0, 0, 0);
+        
+        const dayCell = document.createElement('div');
+        dayCell.className = 'calendar-day';
+        
+        // 检查是否是今天
+        if (date.getTime() === today.getTime()) {
+            dayCell.classList.add('today');
+        }
+        
+        // 检查是否是过去的日期
+        if (date < today) {
+            dayCell.classList.add('past');
+        }
+        
+        // 查找当天的计划
+        const dayPlan = dailyPlan.find(dp => {
+            const dpDate = new Date(dp.date);
+            dpDate.setHours(0, 0, 0, 0);
+            return dpDate.getTime() === date.getTime();
+        });
+        
+        // 日期数字
+        const dayNumber = document.createElement('div');
+        dayNumber.className = 'calendar-day-number';
+        dayNumber.textContent = day;
+        dayCell.appendChild(dayNumber);
+        
+        // 任务列表
+        const tasksList = document.createElement('div');
+        tasksList.className = 'calendar-day-tasks';
+        
+        if (dayPlan) {
+            // 学习任务
+            if (dayPlan.learningTask && dayPlan.learningTask.hours > 0) {
+                const learningTask = document.createElement('div');
+                learningTask.className = 'calendar-task learning-task';
+                learningTask.innerHTML = `
+                    <div class="task-name">📚 ${dayPlan.learningTask.name}</div>
+                    <div class="task-hours">${dayPlan.learningTask.hours}小时</div>
+                `;
+                tasksList.appendChild(learningTask);
+            }
+            
+            // 制作任务
+            dayPlan.makingTasks.forEach(task => {
+                const makingTask = document.createElement('div');
+                makingTask.className = 'calendar-task making-task';
+                makingTask.innerHTML = `
+                    <div class="task-song">${task.songName}</div>
+                    <div class="task-name">${task.taskName}</div>
+                    <div class="task-hours">${task.hours}小时</div>
+                `;
+                tasksList.appendChild(makingTask);
+            });
+            
+            // 总时长
+            if (dayPlan.totalHours > 0) {
+                const totalHours = document.createElement('div');
+                totalHours.className = 'calendar-day-total';
+                totalHours.textContent = `总计: ${dayPlan.totalHours.toFixed(1)}小时`;
+                dayCell.appendChild(totalHours);
+            }
+        }
+        
+        dayCell.appendChild(tasksList);
+        calendarGrid.appendChild(dayCell);
+    }
+    
+    calendarWrapper.appendChild(calendarGrid);
+    container.appendChild(calendarWrapper);
+}
+
+// 切换日历月份
+function changeCalendarMonth(delta) {
+    currentCalendarMonth += delta;
+    if (currentCalendarMonth < 0) {
+        currentCalendarMonth = 11;
+        currentCalendarYear--;
+    } else if (currentCalendarMonth > 11) {
+        currentCalendarMonth = 0;
+        currentCalendarYear++;
+    }
+    renderDailyPlan();
+}
+
 // 时间线视图切换
 function switchTimelineView(view) {
     currentTimelineView = view;
@@ -1292,14 +1795,32 @@ function switchTimelineView(view) {
     if (view === 'timeline') {
         document.getElementById('timeline').style.display = 'block';
         document.getElementById('projectView').style.display = 'none';
+        const dailyPlanView = document.getElementById('dailyPlanView');
+        if (dailyPlanView) dailyPlanView.style.display = 'none';
         document.getElementById('timelineViewBtn').classList.add('active');
         document.getElementById('projectViewBtn').classList.remove('active');
-    } else {
+        const dailyPlanBtn = document.getElementById('dailyPlanViewBtn');
+        if (dailyPlanBtn) dailyPlanBtn.classList.remove('active');
+    } else if (view === 'project') {
         document.getElementById('timeline').style.display = 'none';
         document.getElementById('projectView').style.display = 'block';
+        const dailyPlanView = document.getElementById('dailyPlanView');
+        if (dailyPlanView) dailyPlanView.style.display = 'none';
         document.getElementById('timelineViewBtn').classList.remove('active');
         document.getElementById('projectViewBtn').classList.add('active');
+        const dailyPlanBtn = document.getElementById('dailyPlanViewBtn');
+        if (dailyPlanBtn) dailyPlanBtn.classList.remove('active');
         renderProjectView();
+    } else if (view === 'daily') {
+        document.getElementById('timeline').style.display = 'none';
+        document.getElementById('projectView').style.display = 'none';
+        const dailyPlanView = document.getElementById('dailyPlanView');
+        if (dailyPlanView) dailyPlanView.style.display = 'block';
+        document.getElementById('timelineViewBtn').classList.remove('active');
+        document.getElementById('projectViewBtn').classList.remove('active');
+        const dailyPlanBtn = document.getElementById('dailyPlanViewBtn');
+        if (dailyPlanBtn) dailyPlanBtn.classList.add('active');
+        renderDailyPlan();
     }
 }
 
@@ -2213,12 +2734,23 @@ function openStartDateModal() {
     const modal = document.getElementById('startDateModal');
     const startDate = getStartDate();
     const dateInput = document.getElementById('startDateInput');
+    const timeConfig = getTimeConfig();
     
     // 将日期格式化为 YYYY-MM-DD
     const year = startDate.getFullYear();
     const month = String(startDate.getMonth() + 1).padStart(2, '0');
     const day = String(startDate.getDate()).padStart(2, '0');
     dateInput.value = `${year}-${month}-${day}`;
+    
+    // 设置时间配置
+    const learningHoursInput = document.getElementById('dailyLearningHours');
+    const makingHoursInput = document.getElementById('dailyMakingHours');
+    if (learningHoursInput) {
+        learningHoursInput.value = timeConfig.dailyLearningHours;
+    }
+    if (makingHoursInput) {
+        makingHoursInput.value = timeConfig.dailyMakingHours;
+    }
     
     modal.style.display = 'flex';
 }
@@ -2243,15 +2775,25 @@ function saveStartDate(event) {
     selectedDate.setHours(0, 0, 0, 0);
     setStartDate(selectedDate);
     
+    // 保存时间配置
+    const learningHoursInput = document.getElementById('dailyLearningHours');
+    const makingHoursInput = document.getElementById('dailyMakingHours');
+    if (learningHoursInput && makingHoursInput) {
+        const learningHours = parseFloat(learningHoursInput.value) || DEFAULT_LEARNING_HOURS;
+        const makingHours = parseFloat(makingHoursInput.value) || DEFAULT_MAKING_HOURS;
+        updateTimeConfig(learningHours, makingHours);
+    }
+    
     // 刷新所有显示
     renderSongs();
     renderTimeline();
     renderProjectView();
     renderGantt();
+    renderDailyPlan();
     updateStats();
     
     closeStartDateModal();
-    alert('开始日期已更新！');
+    alert('设置已更新！');
 }
 
 // 导出函数供全局使用
@@ -2275,4 +2817,8 @@ window.importData = importData;
 window.openStartDateModal = openStartDateModal;
 window.closeStartDateModal = closeStartDateModal;
 window.saveStartDate = saveStartDate;
+window.updateTaskHoursDisplay = updateTaskHoursDisplay;
+window.adjustTaskHour = adjustTaskHour;
+window.recalculateTotalHours = recalculateTotalHours;
+window.changeCalendarMonth = changeCalendarMonth;
 
