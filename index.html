@@ -61,10 +61,12 @@
                     <div class="view-toggle-small">
                         <button class="btn-toggle-small active" id="timelineViewBtn" onclick="switchTimelineView('timeline')">📅 时间线</button>
                         <button class="btn-toggle-small" id="projectViewBtn" onclick="switchTimelineView('project')">📊 项目进度</button>
+                        <button class="btn-toggle-small" id="dailyPlanViewBtn" onclick="switchTimelineView('daily')">📆 每日任务</button>
                     </div>
                 </div>
                 <div id="timeline" class="timeline"></div>
                 <div id="projectView" class="project-view" style="display: none;"></div>
+                <div id="dailyPlanView" class="daily-plan-view" style="display: none;"></div>
             </section>
 
             <section class="gantt-section">
@@ -206,16 +208,23 @@
                 </div>
                 <div class="form-group">
                     <label for="estimatedHours">预计有效时长（小时）</label>
-                    <input type="number" id="estimatedHours" min="20" max="60" value="40" step="1">
+                    <input type="number" id="estimatedHours" min="20" max="60" value="40" step="1" onchange="updateTaskHoursDisplay()">
                     <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
                         一首歌40有效小时。每天最多6小时，推荐每天2小时（已养成习惯）。每天2小时则20天完成一首歌。
                     </small>
                 </div>
                 <div class="form-group">
                     <label for="isNewGenre">是否为新曲风</label>
-                    <input type="checkbox" id="isNewGenre">
+                    <input type="checkbox" id="isNewGenre" onchange="updateTaskHoursDisplay()">
                     <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
                         新曲风需要至少一周前期准备：听10张专辑，搜索曲风介绍（BPM、配器音色、代表人物、经典曲目、最新曲目）
+                    </small>
+                </div>
+                <div class="form-group" id="taskHoursGroup" style="display: none;">
+                    <label>任务时长分配（小时）<button type="button" class="btn btn-small" onclick="updateTaskHoursDisplay()" style="margin-left: 10px;">重新计算</button></label>
+                    <div class="task-hours-list" id="taskHoursList"></div>
+                    <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
+                        可以手动调整每个任务的时长，系统会自动重新计算总时长。
                     </small>
                 </div>
                 <div class="form-group">
@@ -275,6 +284,16 @@
                     <label>总天数：</label>
                     <input type="number" value="180" disabled style="background: #f5f5f5;">
                     <small style="color: #666; display: block; margin-top: 5px;">从开始日期起，共 180 天</small>
+                </div>
+                <div class="form-group">
+                    <label for="dailyLearningHours">每日学习时长（小时）</label>
+                    <input type="number" id="dailyLearningHours" min="0" max="2" step="0.5" value="0.5">
+                    <small style="color: #666; display: block; margin-top: 5px;">用于听歌分析/学习技巧的时间（0-2小时，默认0.5小时）</small>
+                </div>
+                <div class="form-group">
+                    <label for="dailyMakingHours">每日制作时长（小时）</label>
+                    <input type="number" id="dailyMakingHours" min="0" max="6" step="0.5" value="2">
+                    <small style="color: #666; display: block; margin-top: 5px;">用于制作歌曲的时间（默认2小时，最大6小时）。实际制作时间 = 制作时长 - 学习时长</small>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">保存</button>

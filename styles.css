@@ -1422,6 +1422,183 @@ section {
     line-height: 1.6;
 }
 
+/* 每日任务日历视图样式 */
+.daily-plan-view {
+    width: 100%;
+}
+
+.calendar-wrapper {
+    width: 100%;
+}
+
+.calendar-month-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.calendar-month-nav h3 {
+    margin: 0;
+    font-size: 1.3em;
+    color: #333;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    width: 100%;
+}
+
+.calendar-weekday {
+    text-align: center;
+    font-weight: 600;
+    color: #666;
+    padding: 10px;
+    background: #f0f0f0;
+    border-radius: 4px;
+}
+
+.calendar-day {
+    min-height: 120px;
+    padding: 8px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+}
+
+.calendar-day.empty {
+    background: transparent;
+    border: none;
+}
+
+.calendar-day.today {
+    background: #e3f2fd;
+    border: 2px solid #1a1a1a;
+}
+
+.calendar-day.past {
+    opacity: 0.6;
+    background: #f5f5f5;
+}
+
+.calendar-day-number {
+    font-weight: 600;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.calendar-day.today .calendar-day-number {
+    color: #1a1a1a;
+}
+
+.calendar-day-tasks {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+}
+
+.calendar-task {
+    padding: 6px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    line-height: 1.3;
+}
+
+.calendar-task.learning-task {
+    background: #fff3cd;
+    border-left: 3px solid #ffc107;
+}
+
+.calendar-task.making-task {
+    background: #d1ecf1;
+    border-left: 3px solid #667eea;
+}
+
+.task-song {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 2px;
+}
+
+.task-name {
+    color: #666;
+    margin-bottom: 2px;
+}
+
+.task-hours {
+    font-size: 0.85em;
+    color: #999;
+    font-weight: 600;
+}
+
+.calendar-day-total {
+    margin-top: auto;
+    padding-top: 4px;
+    font-size: 0.7em;
+    color: #666;
+    font-weight: 600;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* 任务时长编辑样式 */
+.task-hours-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.task-hour-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.task-hour-label {
+    flex: 1;
+    font-size: 0.9em;
+    color: #333;
+    line-height: 1.4;
+}
+
+.task-hour-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.task-hour-input {
+    width: 80px;
+    padding: 6px;
+    border: 2px solid #e0e0e0;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.9em;
+}
+
+.task-hour-input:focus {
+    outline: none;
+    border-color: #1a1a1a;
+}
+
 @media (max-width: 768px) {
     .tab-navigation {
         flex-direction: column;
@@ -1435,6 +1612,26 @@ section {
     .chord-types-list,
     .chord-progressions-list {
         grid-template-columns: 1fr;
+    }
+    
+    .calendar-day {
+        min-height: 100px;
+        padding: 6px;
+    }
+    
+    .calendar-task {
+        font-size: 0.7em;
+        padding: 4px;
+    }
+    
+    .task-hour-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .task-hour-controls {
+        width: 100%;
+        justify-content: center;
     }
 }
 
