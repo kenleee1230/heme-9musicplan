@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- 背景圆形 -->
+  <circle cx="16" cy="16" r="15" fill="black" />
+  
+  <!-- 图案背景 - 音乐节奏型样式 -->
+  <path d="M4,16 L7,12 L10,16 L13,14 L16,18 L19,13 L22,17 L25,15 L28,19" 
+        stroke="#333" stroke-width="0.5" fill="none" />
+  <path d="M4,20 L7,16 L10,20 L13,18 L16,22 L19,17 L22,21 L25,19 L28,23" 
+        stroke="#333" stroke-width="0.5" fill="none" />
+        
+  <!-- 中央图案元素 -->
+  <g transform="translate(16,16) rotate(45) translate(-16,-16)">
+    <!-- 音符与图案融合 -->
+    <path d="M18,8 L18,16 C18,17.1 17.1,18 16,18 C14.9,18 14,17.1 14,16 C14,14.9 14.9,14 16,14 C16.35,14 16.69,14.1 17,14.29 L17,10 L12,11.5 L12,15 C12,16.1 11.1,17 10,17 C8.9,17 8,16.1 8,15 C8,13.9 8.9,13 10,13 C10.35,13 10.69,13.1 11,13.29 L11,9 L18,7.5 L18,8 Z" fill="white" />
+    
+    <!-- 图案元素 - 几何形状 -->
+    <rect x="20" y="10" width="2" height="2" fill="white" />
+    <rect x="23" y="13" width="2" height="2" fill="white" />
+    <rect x="20" y="16" width="2" height="2" fill="white" />
+    <rect x="23" y="19" width="2" height="2" fill="white" />
+    
+    <!-- 连接线 -->
+    <line x1="22" y1="11" x2="23" y2="13" stroke="white" stroke-width="0.75" />
+    <line x1="22" y1="17" x2="23" y2="19" stroke="white" stroke-width="0.75" />
+    <line x1="20" y1="12" x2="20" y2="16" stroke="white" stroke-width="0.75" />
+  </g>
+</svg>
