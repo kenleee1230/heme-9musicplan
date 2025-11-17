@@ -39,6 +39,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,otf,ttf}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB，允许缓存大字体文件
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
