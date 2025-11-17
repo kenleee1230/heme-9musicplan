@@ -113,21 +113,27 @@ export function useTimer() {
     startTimerTick()
   }
 
-  // 停止计时（返回已用时长）
+  // 停止计时（返回已用时长和计时信息）
   function stopTimer() {
-    if (!timer.value.isRunning) return { hours: 0 }
+    if (!timer.value.isRunning) return { hours: 0, songId: null, startTime: null, endTime: null }
 
     stopTimerTick()
 
+    const endTime = Date.now()
     const finalElapsed = timer.value.isPaused 
       ? timer.value.elapsedSeconds
       : calculateElapsed(timer.value.startTime)
 
-    const hours = Math.round((finalElapsed / 3600) * 10) / 10
+    // 保留更多小数位，避免短时间被四舍五入为0
+    // 例如：45秒 = 0.0125小时，如果只保留1位小数会变成0
+    const hours = Math.round((finalElapsed / 3600) * 100) / 100 // 保留2位小数
 
     const result = {
       songId: timer.value.songId,
-      hours: hours
+      songName: timer.value.songName,
+      hours: hours,
+      startTime: timer.value.startTime,
+      endTime: endTime
     }
 
     // 重置计时器

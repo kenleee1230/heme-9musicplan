@@ -48,10 +48,11 @@
             ]"
           >
             <div class="calendar-day-number">{{ day }}</div>
+            <!-- 计划任务 -->
             <div class="calendar-day-tasks">
               <div 
                 v-for="task in getDayTasks(day)" 
-                :key="`${task.songId}-${task.taskIndex}`"
+                :key="`task-${task.songId}-${task.taskIndex}`"
                 class="calendar-task making-task"
               >
                 <div class="task-song">{{ task.songName }}</div>
@@ -59,8 +60,31 @@
                 <div class="task-hours">{{ task.allocatedHours.toFixed(1) }}h</div>
               </div>
             </div>
-            <div v-if="getDayTotalHours(day) > 0" class="calendar-day-total">
-              总计: {{ getDayTotalHours(day).toFixed(1) }}小时
+            <!-- 计时记录 -->
+            <div v-if="getDayTimerRecords(day).length > 0" class="calendar-day-records">
+              <div 
+                v-if="!collapsedTimerRecords.has(getDayKey(day))"
+                v-for="record in getDayTimerRecords(day)" 
+                :key="`record-${record.id}`"
+                class="calendar-task timer-record"
+              >
+                <div class="task-song">⏱️ {{ record.songName }}</div>
+                <div class="task-hours">{{ formatDuration(record.duration) }}</div>
+              </div>
+              <button 
+                v-if="getDayTimerRecords(day).length > 0"
+                class="btn-toggle-records"
+                @click.stop="toggleTimerRecords(day)"
+                :title="collapsedTimerRecords.has(getDayKey(day)) ? '展开记录' : '收起记录'"
+              >
+                {{ collapsedTimerRecords.has(getDayKey(day)) ? '▼' : '▲' }}
+              </button>
+            </div>
+            <div v-if="getDayTotalHours(day) > 0 || getDayTimerRecords(day).length > 0" class="calendar-day-total">
+              计划: {{ getDayTotalHours(day).toFixed(1) }}h
+              <span v-if="getDayTimerRecords(day).length > 0">
+                | 实际: {{ getDayActualHours(day).toFixed(1) }}h
+              </span>
             </div>
           </div>
         </div>
@@ -86,22 +110,22 @@
             ></div>
             
             <!-- 日期单元格 -->
-            <div 
-              v-for="day in daysInMonth" 
-              :key="day"
-              :class="[
+              <div 
+                v-for="day in daysInMonth" 
+                :key="day"
+                :class="[
                 'mobile-day',
                 {
                   today: isToday(day),
                   past: isPast(day),
                   selected: isSelected(day),
-                  hasTasks: getDayTasks(day).length > 0
+                  hasTasks: getDayTasks(day).length > 0 || getDayTimerRecords(day).length > 0
                 }
               ]"
               @click="selectDay(day)"
             >
               <div class="mobile-day-number">{{ day }}</div>
-              <div v-if="getDayTasks(day).length > 0" class="mobile-day-dot"></div>
+              <div v-if="getDayTasks(day).length > 0 || getDayTimerRecords(day).length > 0" class="mobile-day-dot"></div>
             </div>
           </div>
           
@@ -109,25 +133,55 @@
           <div v-if="selectedDay" class="mobile-day-details">
             <div class="mobile-day-header">
               <h3>{{ selectedDayDateText }}</h3>
-              <div v-if="getDayTotalHours(selectedDay) > 0" class="mobile-day-total">
-                总计: {{ getDayTotalHours(selectedDay).toFixed(1) }}小时
+              <div class="mobile-day-total">
+                <span v-if="getDayTotalHours(selectedDay) > 0">
+                  计划: {{ getDayTotalHours(selectedDay).toFixed(1) }}h
+                </span>
+                <span v-if="getDayTimerRecords(selectedDay).length > 0">
+                  <span v-if="getDayTotalHours(selectedDay) > 0"> | </span>
+                  实际: {{ getDayActualHours(selectedDay).toFixed(1) }}h
+                </span>
               </div>
             </div>
-            <div v-if="selectedDayTasks.length === 0" class="mobile-no-tasks">
-              这一天没有安排任务
-            </div>
-            <div v-else class="mobile-tasks-list">
-              <div 
-                v-for="task in selectedDayTasks" 
-                :key="`${task.songId}-${task.taskIndex}`"
-                class="mobile-task-card"
-              >
-                <div class="mobile-task-header">
-                  <div class="mobile-task-song">{{ task.songName }}</div>
-                  <div class="mobile-task-hours">{{ task.allocatedHours.toFixed(1) }}h</div>
+            <!-- 计划任务 -->
+            <div v-if="selectedDayTasks.length > 0" class="mobile-section">
+              <div class="mobile-section-title">📋 计划任务</div>
+              <div class="mobile-tasks-list">
+                <div 
+                  v-for="task in selectedDayTasks" 
+                  :key="`task-${task.songId}-${task.taskIndex}`"
+                  class="mobile-task-card"
+                >
+                  <div class="mobile-task-header">
+                    <div class="mobile-task-song">{{ task.songName }}</div>
+                    <div class="mobile-task-hours">{{ task.allocatedHours.toFixed(1) }}h</div>
+                  </div>
+                  <div class="mobile-task-name">{{ task.taskName }}</div>
                 </div>
-                <div class="mobile-task-name">{{ task.taskName }}</div>
               </div>
+            </div>
+            
+            <!-- 计时记录 -->
+            <div v-if="selectedDayTimerRecords.length > 0" class="mobile-section">
+              <div class="mobile-section-title">⏱️ 计时记录</div>
+              <div class="mobile-tasks-list">
+                <div 
+                  v-for="record in selectedDayTimerRecords" 
+                  :key="`record-${record.id}`"
+                  class="mobile-task-card timer-record-card"
+                >
+                  <div class="mobile-task-header">
+                    <div class="mobile-task-song">{{ record.songName }}</div>
+                    <div class="mobile-task-hours">{{ formatDuration(record.duration) }}</div>
+                  </div>
+                  <div v-if="record.details" class="mobile-task-name">{{ record.details }}</div>
+                  <div class="mobile-task-time">{{ formatRecordTime(record.createdAt) }}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div v-if="selectedDayTasks.length === 0 && selectedDayTimerRecords.length === 0" class="mobile-no-tasks">
+              这一天没有安排任务和计时记录
             </div>
           </div>
           <div v-else class="mobile-day-details">
@@ -142,11 +196,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useSongsStore } from '@/stores/songs'
 import { useSettingsStore } from '@/stores/settings'
 import { generateDailyPlan } from '@/utils/calculations'
+import { formatDuration } from '@/utils/helpers'
 
 const songsStore = useSongsStore()
 const settingsStore = useSettingsStore()
@@ -158,6 +213,7 @@ const currentMonth = ref(new Date().getMonth())
 const currentYear = ref(new Date().getFullYear())
 const today = new Date()
 const selectedDay = ref(today.getDate())
+const collapsedTimerRecords = ref(new Set()) // 存储已收起的日期
 
 const weekDays = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -257,6 +313,105 @@ const selectedDayDateText = computed(() => {
   const weekDay = weekDays[date.getDay()]
   return `${currentYear.value}年${currentMonth.value + 1}月${selectedDay.value}日 星期${weekDay}`
 })
+
+// 获取所有计时记录（按日期分组）
+const allTimerRecords = computed(() => {
+  const recordsByDate = new Map()
+  
+  songs.value.forEach(song => {
+    if (song.timerRecords && song.timerRecords.length > 0) {
+      song.timerRecords.forEach(record => {
+        const recordDate = new Date(record.createdAt || record.startTime)
+        recordDate.setHours(0, 0, 0, 0)
+        const dateKey = recordDate.getTime()
+        
+        if (!recordsByDate.has(dateKey)) {
+          recordsByDate.set(dateKey, [])
+        }
+        
+        recordsByDate.get(dateKey).push({
+          ...record,
+          songName: song.name,
+          songId: song.id
+        })
+      })
+    }
+  })
+  
+  return recordsByDate
+})
+
+// 初始化：默认收起所有有计时记录的日期
+function initializeCollapsedRecords() {
+  const newCollapsed = new Set()
+  
+  // 遍历当前月份的所有日期
+  const daysInCurrentMonth = daysInMonth.value
+  for (let day = 1; day <= daysInCurrentMonth; day++) {
+    const records = getDayTimerRecords(day)
+    if (records.length > 0) {
+      const key = getDayKey(day)
+      newCollapsed.add(key)
+    }
+  }
+  
+  collapsedTimerRecords.value = newCollapsed
+}
+
+// 监听月份变化和计时记录变化，重新初始化收起状态
+watch([currentMonth, currentYear, allTimerRecords], () => {
+  initializeCollapsedRecords()
+}, { immediate: false })
+
+// 组件挂载时初始化
+onMounted(() => {
+  initializeCollapsedRecords()
+})
+
+// 获取某一天的计时记录
+function getDayTimerRecords(day) {
+  if (!day) return []
+  const date = new Date(currentYear.value, currentMonth.value, day)
+  date.setHours(0, 0, 0, 0)
+  const dateKey = date.getTime()
+  return allTimerRecords.value.get(dateKey) || []
+}
+
+// 获取某一天的实际计时总时长
+function getDayActualHours(day) {
+  const records = getDayTimerRecords(day)
+  return records.reduce((sum, record) => sum + (record.duration || 0), 0)
+}
+
+// 选中日期的计时记录
+const selectedDayTimerRecords = computed(() => {
+  if (!selectedDay.value) return []
+  return getDayTimerRecords(selectedDay.value)
+})
+
+// formatDuration 已从 helpers.js 导入
+
+function getDayKey(day) {
+  return `${currentYear.value}-${currentMonth.value}-${day}`
+}
+
+function toggleTimerRecords(day) {
+  const key = getDayKey(day)
+  if (collapsedTimerRecords.value.has(key)) {
+    collapsedTimerRecords.value.delete(key)
+  } else {
+    collapsedTimerRecords.value.add(key)
+  }
+}
+
+function formatRecordTime(dateString) {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 </script>
 
 <style scoped>
@@ -358,6 +513,40 @@ const selectedDayDateText = computed(() => {
 
 .calendar-task.making-task {
   border-left-color: #1a1a1a;
+}
+
+.calendar-day-records {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+
+.btn-toggle-records {
+  align-self: flex-start;
+  padding: 2px 6px;
+  font-size: 0.75em;
+  background: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  margin-top: 2px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.btn-toggle-records:hover {
+  opacity: 1;
+  color: #666;
+}
+
+.calendar-task.timer-record {
+  border-left-color: #1DB954;
+  background: #f0fdf4;
+  opacity: 0.95;
 }
 
 .task-song {
@@ -660,6 +849,31 @@ const selectedDayDateText = computed(() => {
     color: #666;
     line-height: 1.5;
   }
+  
+  .mobile-section {
+    margin-bottom: 20px;
+  }
+  
+  .mobile-section-title {
+    font-size: 1em;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e0e0e0;
+  }
+  
+  .timer-record-card {
+    border-left-color: #1DB954;
+    background: #f0fdf4;
+  }
+  
+  .mobile-task-time {
+    font-size: 0.85em;
+    color: #999;
+    margin-top: 6px;
+  }
 }
 </style>
+
 

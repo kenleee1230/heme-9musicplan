@@ -83,6 +83,33 @@
           <textarea v-model="formData.notes" rows="3"></textarea>
         </div>
         
+        <!-- 计时记录展示区域（仅在编辑模式下显示） -->
+        <div v-if="song && timerRecords.length > 0" class="form-group">
+          <label>计时记录</label>
+          <div class="timer-records-list">
+            <div v-for="record in sortedTimerRecords" :key="record.id" class="timer-record-item">
+              <div class="timer-record-header">
+                <div class="timer-record-time">
+                  <span class="record-date">{{ formatRecordDate(record.createdAt) }}</span>
+                  <span class="record-separator">·</span>
+                  <span class="record-duration">{{ formatDuration(record.duration) }}</span>
+                </div>
+                <button 
+                  type="button" 
+                  class="btn btn-small btn-delete" 
+                  @click="deleteRecord(record.id)"
+                  title="删除记录"
+                >
+                  删除
+                </button>
+              </div>
+              <div v-if="record.details" class="timer-record-details">
+                {{ record.details }}
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">保存</button>
           <button type="button" class="btn btn-secondary" @click="$emit('close')">取消</button>
@@ -93,9 +120,11 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { TASKS } from '@/utils/constants'
 import { calculateTaskHours } from '@/utils/calculations'
+import { useSongsStore } from '@/stores/songs'
+import { formatDuration } from '@/utils/helpers'
 
 const props = defineProps({
   song: Object
@@ -103,7 +132,23 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
+const songsStore = useSongsStore()
 const showTaskHours = ref(false)
+
+// 获取计时记录
+const timerRecords = computed(() => {
+  if (!props.song || !props.song.timerRecords) return []
+  return props.song.timerRecords
+})
+
+// 按时间倒序排列的计时记录
+const sortedTimerRecords = computed(() => {
+  return [...timerRecords.value].sort((a, b) => {
+    const timeA = new Date(a.createdAt || a.startTime || 0).getTime()
+    const timeB = new Date(b.createdAt || b.startTime || 0).getTime()
+    return timeB - timeA // 最新的在前
+  })
+})
 
 const formData = ref({
   name: '',
@@ -183,6 +228,32 @@ function formatTimeSpent() {
   // 格式化已用时长为保留1位小数
   if (formData.value.timeSpent !== null && formData.value.timeSpent !== undefined) {
     formData.value.timeSpent = Math.round(formData.value.timeSpent * 10) / 10
+  }
+}
+
+// formatDuration 已从 helpers.js 导入
+
+function formatRecordDate(dateString) {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+async function deleteRecord(recordId) {
+  if (!props.song) return
+  if (confirm('确定要删除这条计时记录吗？')) {
+    await songsStore.deleteTimerRecord(props.song.id, recordId)
+    // 更新表单中的已用时长
+    const updatedSong = songsStore.getSongById(props.song.id)
+    if (updatedSong) {
+      formData.value.timeSpent = updatedSong.timeSpent || 0
+    }
   }
 }
 

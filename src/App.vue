@@ -18,6 +18,7 @@
             :song="song"
             @edit="editSong"
             @delete="deleteSong"
+            @viewRecords="viewTimerRecords"
           />
           <div v-if="songs.length === 0" class="empty-state">
             暂无歌曲，点击"添加新歌"开始创建
@@ -92,6 +93,13 @@
       @showLogin="showRegisterModal = false; showLoginModal = true"
     />
     
+    <!-- 计时记录查看模态框 -->
+    <TimerRecordsModal 
+      :show="showTimerRecordsModal"
+      :song="viewingSong"
+      @close="closeTimerRecordsModal"
+    />
+    
     <!-- 计时器 -->
     <Timer />
   </div>
@@ -112,6 +120,7 @@ import KnowledgeCard from './components/Common/KnowledgeCard.vue'
 import Timer from './components/Common/Timer.vue'
 import SongCard from './components/Schedule/SongCard.vue'
 import SongModal from './components/Schedule/SongModal.vue'
+import TimerRecordsModal from './components/Schedule/TimerRecordsModal.vue'
 import LoginModal from './components/Auth/LoginModal.vue'
 import RegisterModal from './components/Auth/RegisterModal.vue'
 import CircleOfFifths from './components/Theory/CircleOfFifths.vue'
@@ -123,9 +132,12 @@ import ChordReference from './components/Theory/ChordReference.vue'
 import ModalScales from './components/Theory/ModalScales.vue'
 
 // Stores
+import { useTimerSyncStore } from '@/stores/timerSync'
+
 const authStore = useAuthStore()
 const songsStore = useSongsStore()
 const settingsStore = useSettingsStore()
+const timerSyncStore = useTimerSyncStore()
 
 // 状态
 const { songs } = storeToRefs(songsStore)
@@ -135,6 +147,8 @@ const showSongModal = ref(false)
 const showLoginModal = ref(false)
 const showRegisterModal = ref(false)
 const editingSong = ref(null)
+const showTimerRecordsModal = ref(false)
+const viewingSong = ref(null)
 
 // 初始化同步
 useSync()
@@ -170,6 +184,18 @@ function deleteSong(song) {
   }
 }
 
+function viewTimerRecords(song) {
+  // 获取最新的歌曲数据，确保包含最新的计时记录
+  const latestSong = songsStore.getSongById(song.id) || song
+  viewingSong.value = latestSong
+  showTimerRecordsModal.value = true
+}
+
+function closeTimerRecordsModal() {
+  showTimerRecordsModal.value = false
+  viewingSong.value = null
+}
+
 // 生命周期
 onMounted(async () => {
   // 初始化认证
@@ -178,6 +204,14 @@ onMounted(async () => {
   // 加载数据
   settingsStore.loadSettings()
   songsStore.loadSongs()
+  
+  // 初始化计时同步队列
+  timerSyncStore.init()
+  
+  // 如果已登录且有网络，处理同步队列
+  if (authStore.isAuthenticated && navigator.onLine) {
+    timerSyncStore.processSyncQueue()
+  }
 })
 </script>
 

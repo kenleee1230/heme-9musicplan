@@ -17,10 +17,40 @@ export function formatDate(date) {
   })
 }
 
-// 格式化时间
+// 格式化时间（旧版，保留兼容性）
 export function formatTime(hours) {
   if (hours === null || hours === undefined) return '0小时'
   return `${hours.toFixed(1)}小时`
+}
+
+// 格式化时长：显示为"xx小时xx分钟"，如果小于1分钟则显示秒数
+export function formatDuration(hours) {
+  if (!hours || hours === 0) return '0秒'
+  const totalSeconds = Math.round(hours * 3600)
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  const s = totalSeconds % 60
+  
+  if (h > 0) {
+    if (m > 0) {
+      return `${h}小时${m}分钟`
+    } else {
+      return `${h}小时`
+    }
+  } else if (m > 0) {
+    if (s > 0) {
+      return `${m}分${s}秒`
+    } else {
+      return `${m}分钟`
+    }
+  } else {
+    return `${s}秒`
+  }
+}
+
+// 格式化已用时长：显示为"xx小时xx分钟"，如果小于1分钟则显示秒数
+export function formatTimeSpent(hours) {
+  return formatDuration(hours)
 }
 
 // 获取音符名称（处理升降号）

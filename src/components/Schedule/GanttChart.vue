@@ -159,7 +159,7 @@ function getBarStyle(song, index) {
 
 function getProgressStyle(song) {
   const progressPercent = (song.timeSpent || 0) / song.estimatedHours * 100
-  const backgroundColor = song.currentStage === '已完成' ? '#28a745' : '#667eea'
+  const backgroundColor = song.currentStage === '已完成' ? '#1DB954' : '#1a1a1a'
   
   return {
     width: `${Math.min(progressPercent, 100)}%`,
@@ -260,15 +260,23 @@ function getProgressStyle(song) {
   color: #1a1a1a;
   margin-bottom: 6px;
   font-size: 1em;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  line-height: 1.4;
 }
 
 .new-genre-badge {
-  background: #ffc107;
-  color: #333;
+  background: #1a1a1a;
+  color: white;
   padding: 2px 6px;
+  font-size: 0.65em;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid #1a1a1a;
   border-radius: 4px;
-  font-size: 0.7em;
-  margin-left: 5px;
 }
 
 .gantt-song-info {
@@ -301,8 +309,7 @@ function getProgressStyle(song) {
 
 .gantt-song-progress {
   height: 100%;
-  background: #667eea;
-  border-radius: 4px;
+  background: #1a1a1a;
   transition: width 0.3s ease;
 }
 

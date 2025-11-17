@@ -21,8 +21,8 @@
         </div>
         <div class="timeline-section">
           <strong>时间分配建议：</strong><br>
-          • 编曲作曲：{{ (RECOMMENDED_HOURS_PER_DAY * 0.7).toFixed(1) }} 小时/天 (70%)<br>
-          • 混音母带：{{ (RECOMMENDED_HOURS_PER_DAY * 0.3).toFixed(1) }} 小时/天 (30%)
+          • 学习：{{ (RECOMMENDED_HOURS_PER_DAY * 0.3).toFixed(1) }} 小时/天 (30%)<br>
+          • 编曲实践：{{ (RECOMMENDED_HOURS_PER_DAY * 0.7).toFixed(1) }} 小时/天 (70%)
         </div>
       </div>
       

@@ -3,6 +3,7 @@ export const STORAGE_KEY = 'musicplan_songs'
 export const START_DATE_KEY = 'musicplan_start_date'
 export const TIME_CONFIG_KEY = 'musicplan_time_config'
 export const TIMER_STORAGE_KEY = 'musicplan_timer'
+export const SYNC_QUEUE_KEY = 'musicplan_sync_queue'
 
 // 项目配置
 export const TOTAL_DAYS = 180

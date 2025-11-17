@@ -155,8 +155,6 @@ section {
 
 .btn-primary:hover {
     background: #000;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary {
@@ -178,16 +176,14 @@ section {
 
 .song-card {
     background: #f8f9fa;
-    border-radius: 12px;
     padding: 20px;
     border-left: 2px solid #1a1a1a;
-    transition: all 0.3s ease;
-    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s ease;
 }
 
 .song-card:hover {
-    transform: translateX(5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    background: #f0f0f0;
 }
 
 .song-header {
@@ -204,19 +200,48 @@ section {
 }
 
 .song-stage {
-    padding: 6px 12px;
-    border-radius: 20px;
+    padding: 4px 8px;
     font-size: 0.85em;
     font-weight: 600;
+    border: 1px solid;
+    border-radius: 4px;
 }
 
-.stage-曲风研究 { background: #f5f5f5; color: #1a1a1a; border: 1px solid #d0d0d0; }
-.stage-Demo制作 { background: #f5f5f5; color: #1a1a1a; border: 1px solid #d0d0d0; }
-.stage-编曲 { background: #f5f5f5; color: #1a1a1a; border: 1px solid #d0d0d0; }
-.stage-混音母带 { background: #f5f5f5; color: #1a1a1a; border: 1px solid #d0d0d0; }
-.stage-队长审核 { background: #f5f5f5; color: #1a1a1a; border: 1px solid #d0d0d0; }
-.stage-校长审核 { background: #f5f5f5; color: #1a1a1a; border: 1px solid #d0d0d0; }
-.stage-已完成 { background: #1a1a1a; color: white; border: 1px solid #1a1a1a; }
+.stage-曲风研究 { 
+    background: white; 
+    color: #1a1a1a; 
+    border-color: #d0d0d0;
+}
+.stage-Demo制作 { 
+    background: white; 
+    color: #1a1a1a; 
+    border-color: #d0d0d0;
+}
+.stage-编曲 { 
+    background: white; 
+    color: #1a1a1a; 
+    border-color: #d0d0d0;
+}
+.stage-混音母带 { 
+    background: white; 
+    color: #1a1a1a; 
+    border-color: #d0d0d0;
+}
+.stage-队长审核 { 
+    background: white; 
+    color: #1a1a1a; 
+    border-color: #d0d0d0;
+}
+.stage-校长审核 { 
+    background: white; 
+    color: #1a1a1a; 
+    border-color: #d0d0d0;
+}
+.stage-已完成 { 
+    background: #1a1a1a; 
+    color: white; 
+    border-color: #1a1a1a;
+}
 
 .song-progress {
     margin-bottom: 10px;
@@ -274,12 +299,187 @@ section {
     margin-top: 15px;
 }
 
+/* 卡片内的计时记录区域 - 优化为更简洁的展示 */
+.timer-records-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e8e8e8;
+}
+
+.timer-records-header {
+    margin-bottom: 12px;
+}
+
+.records-title {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #1a1a1a;
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
+    font-size: 0.75em;
+    opacity: 0.7;
+}
+
+.timer-records-section .timer-records-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* 自定义滚动条样式 */
+.timer-records-section .timer-records-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.timer-records-section .timer-records-list::-webkit-scrollbar-track {
+    background: #f5f5f5;
+    border-radius: 3px;
+}
+
+.timer-records-section .timer-records-list::-webkit-scrollbar-thumb {
+    background: #d0d0d0;
+    border-radius: 3px;
+}
+
+.timer-records-section .timer-records-list::-webkit-scrollbar-thumb:hover {
+    background: #b0b0b0;
+}
+
+.timer-records-section .timer-record-item {
+    background: #ffffff;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.timer-records-section .timer-record-item:hover {
+    background: #ffffff;
+    border-color: #c0c0c0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+}
+
+.timer-records-section .timer-record-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0;
+    gap: 12px;
+}
+
+.timer-records-section .timer-record-time {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.timer-records-section .record-date {
+    font-size: 0.875em;
+    color: #666;
+    font-weight: 400;
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+}
+
+.timer-records-section .record-separator {
+    color: #bbb;
+    margin: 0 2px;
+    font-weight: 300;
+}
+
+.timer-records-section .record-duration {
+    font-size: 0.95em;
+    color: #1a1a1a;
+    font-weight: 700;
+    white-space: nowrap;
+    background: #f0f0f0;
+    padding: 4px 10px;
+    border-radius: 12px;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.timer-records-section .timer-record-details {
+    font-size: 0.875em;
+    color: #555;
+    line-height: 1.7;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e8e8e8;
+    white-space: pre-wrap;
+    word-break: break-word;
+    letter-spacing: 0.01em;
+}
+
+.record-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    align-items: center;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.timer-record-item:hover .record-actions {
+    opacity: 1;
+}
+
+.btn-tiny {
+    padding: 5px 9px;
+    font-size: 0.8em;
+    min-width: 28px;
+    height: 28px;
+    line-height: 1;
+    background: #ffffff;
+    color: #666;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.btn-tiny:hover {
+    background: #f8f8f8;
+    border-color: #d0d0d0;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.btn-tiny.btn-edit:hover {
+    background: #f0f7ff;
+    border-color: #4a90e2;
+    color: #4a90e2;
+}
+
+.btn-tiny.btn-delete:hover {
+    background: #fff5f5;
+    border-color: #e53e3e;
+    color: #e53e3e;
+}
+
 .btn-small {
     padding: 6px 12px;
     font-size: 0.85em;
     background: #e0e0e0;
     color: #333;
     border: 1px solid #d0d0d0;
+    border-radius: 4px;
 }
 
 .btn-small:hover {
@@ -291,7 +491,7 @@ section {
 .btn-small.btn-primary {
     background: #1a1a1a;
     color: white;
-    border-color: #1a1a1a;
+    border: 1px solid #1a1a1a;
 }
 
 .btn-small.btn-primary:hover {
@@ -299,26 +499,39 @@ section {
     border-color: #000;
 }
 
-.btn-edit {
+/* 编辑和删除按钮样式（需要和 btn-small 一起使用） */
+.btn-small.btn-edit {
     background: white;
     color: #1a1a1a;
-    border: 1px solid #1a1a1a;
+    border-color: #1a1a1a;
 }
 
-.btn-edit:hover {
+.btn-small.btn-edit:hover {
     background: #1a1a1a;
     color: white;
 }
 
-.btn-delete {
+.btn-small.btn-delete {
     background: white;
     color: #1a1a1a;
-    border: 1px solid #1a1a1a;
+    border-color: #1a1a1a;
 }
 
-.btn-delete:hover {
+.btn-small.btn-delete:hover {
     background: #1a1a1a;
     color: white;
+}
+
+/* 查看记录按钮样式（需要和 btn-small 一起使用） */
+.btn-small.btn-view {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.btn-small.btn-view:hover {
+    background: #5568d3;
+    border-color: #5568d3;
 }
 
 .timeline {
@@ -373,6 +586,35 @@ section {
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    /* 确保滚动条不影响圆角 */
+    scrollbar-gutter: stable;
+}
+
+/* 自定义滚动条样式，确保圆角显示 */
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 0 16px 16px 0;
+    margin: 16px 0;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+    border: 2px solid white;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
+/* Firefox 滚动条样式 */
+.modal-content {
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
 }
 
 .close {
@@ -423,6 +665,23 @@ section {
     border-radius: 8px;
     font-size: 1em;
     transition: border-color 0.3s ease;
+}
+
+/* 编辑计时记录对话框样式 */
+.timer-edit-dialog {
+    z-index: 2000 !important;
+    display: flex !important;
+}
+
+.timer-edit-modal {
+    max-width: 500px;
+}
+
+.timer-edit-form .form-group small {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.85em;
+    color: #999;
 }
 
 /* 防止iOS自动缩放 */
@@ -629,6 +888,186 @@ section {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* 计时明细对话框 */
+.timer-details-dialog {
+    display: flex !important;
+    z-index: 2000 !important;
+}
+
+.timer-details-modal {
+    max-width: 500px;
+    position: relative;
+    z-index: 2001;
+}
+
+.timer-details-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.detail-item {
+    display: flex;
+    margin-bottom: 8px;
+}
+
+.detail-item:last-child {
+    margin-bottom: 0;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #666;
+    min-width: 60px;
+}
+
+.detail-value {
+    color: #333;
+}
+
+.timer-details-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1em;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+}
+
+.timer-details-input:focus {
+    outline: none;
+    border-color: #1a1a1a;
+}
+
+/* 同步状态提示 */
+.sync-status {
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    text-align: center;
+}
+
+.sync-saving,
+.sync-syncing {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.sync-success,
+.sync-synced {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.sync-error {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+/* 计时记录列表（模态框等通用样式） */
+.timer-records-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.timer-records-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.timer-records-list::-webkit-scrollbar-track {
+    background: #f5f5f5;
+    border-radius: 3px;
+}
+
+.timer-records-list::-webkit-scrollbar-thumb {
+    background: #d0d0d0;
+    border-radius: 3px;
+}
+
+.timer-records-list::-webkit-scrollbar-thumb:hover {
+    background: #b0b0b0;
+}
+
+.timer-record-item {
+    background: #ffffff;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid #d8d8d8;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.timer-record-item:hover {
+    background: #ffffff;
+    border-color: #c0c0c0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+}
+
+.timer-record-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0;
+    gap: 12px;
+}
+
+.timer-record-time {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.record-date {
+    font-size: 0.875em;
+    color: #666;
+    font-weight: 400;
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+}
+
+.record-separator {
+    color: #bbb;
+    margin: 0 2px;
+    font-weight: 300;
+}
+
+.record-duration {
+    font-size: 0.95em;
+    color: #1a1a1a;
+    font-weight: 700;
+    white-space: nowrap;
+    background: #f0f0f0;
+    padding: 4px 10px;
+    border-radius: 12px;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.timer-record-details {
+    font-size: 0.875em;
+    color: #555;
+    line-height: 1.7;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e8e8e8;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 /* 甘特图区域 */
@@ -1148,7 +1587,6 @@ section {
 .tab-btn.active {
     background: #1a1a1a;
     color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .tab-content {
