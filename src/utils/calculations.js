@@ -4,7 +4,11 @@ import { TASKS, TASK_TIME_RATIOS, TOTAL_DAYS, MAX_HOURS_PER_DAY } from './consta
 export function calculateProgress(song) {
   if (!song || !song.tasks) return 0
   const completedCount = song.tasks.filter(Boolean).length
-  return Math.round((completedCount / TASKS.length) * 100)
+  // 使用 customTasks 长度，如果没有则使用默认 TASKS 长度
+  const totalTasks = (Array.isArray(song.customTasks) && song.customTasks.length > 0)
+    ? song.customTasks.length
+    : TASKS.length
+  return totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0
 }
 
 // 计算时间分配
@@ -107,13 +111,20 @@ export function generateDailyPlan(songs, startDate, dailyLearningHours, dailyMak
   const songQueues = activeSongs.map(song => {
     const queue = []
     
+    // 获取 customTasks，如果没有则使用默认 TASKS
+    const customTasks = Array.isArray(song.customTasks) && song.customTasks.length > 0
+      ? song.customTasks
+      : TASKS
+    
     song.taskHours.forEach((hours, taskIndex) => {
       if (!song.tasks[taskIndex] && hours > 0) {
+        // 使用 customTasks 中的任务名称
+        const taskName = customTasks[taskIndex] || `任务 ${taskIndex + 1}`
         queue.push({
           songId: song.id,
           songName: song.name,
           taskIndex: taskIndex,
-          taskName: TASKS[taskIndex],
+          taskName: taskName,
           hours: hours,
           remainingHours: hours,
           isNewGenre: song.isNewGenre

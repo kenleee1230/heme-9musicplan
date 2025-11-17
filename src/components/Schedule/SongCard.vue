@@ -97,7 +97,7 @@
               v-model.number="editForm.durationHours" 
               type="number" 
               min="0" 
-              step="0.01"
+              step="0.1"
               placeholder="例如：1.5"
             />
             <small>当前：{{ formatDuration(editingRecord.duration) }}</small>
@@ -153,7 +153,12 @@ const completedTasksCount = computed(() => {
   return props.song.tasks.filter(Boolean).length
 })
 
-const totalTasks = computed(() => TASKS.length)
+const totalTasks = computed(() => {
+  // 使用 customTasks 长度，如果没有则使用默认 TASKS 长度
+  return (Array.isArray(props.song.customTasks) && props.song.customTasks.length > 0)
+    ? props.song.customTasks.length
+    : TASKS.length
+})
 
 const hasTimerRecords = computed(() => {
   return props.song.timerRecords && props.song.timerRecords.length > 0
@@ -222,8 +227,10 @@ async function saveEdit() {
   }
 
   try {
+    // 保留1位小数
+    const roundedDuration = Math.round(newDuration * 10) / 10
     await songsStore.updateTimerRecord(props.song.id, editingRecord.value.id, {
-      duration: newDuration,
+      duration: roundedDuration,
       details: editForm.value.details
     })
     cancelEdit()

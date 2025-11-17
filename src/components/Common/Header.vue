@@ -34,12 +34,12 @@
           </div>
           <div class="form-group">
             <label>每日学习时长（小时）</label>
-            <input v-model.number="learningHoursInput" type="number" min="0" max="2" step="0.5" />
+            <input v-model.number="learningHoursInput" type="number" min="0" max="2" step="0.1" />
             <small>用于听歌分析/学习技巧的时间（0-2小时）</small>
           </div>
           <div class="form-group">
             <label>每日制作时长（小时）</label>
-            <input v-model.number="makingHoursInput" type="number" min="0" max="6" step="0.5" />
+            <input v-model.number="makingHoursInput" type="number" min="0" max="6" step="0.1" />
             <small>用于制作歌曲的时间（最大6小时）</small>
           </div>
           <div class="form-actions">

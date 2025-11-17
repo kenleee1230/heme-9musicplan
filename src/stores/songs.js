@@ -37,16 +37,68 @@ export const useSongsStore = defineStore('songs', () => {
   // 从 localStorage 加载歌曲
   function loadSongs() {
     const savedSongs = loadFromStorage(STORAGE_KEY, [])
-    songs.value = savedSongs.map(song => ({
-      ...song,
-      // 确保必要字段存在
-      id: song.id || generateId(),
-      tasks: song.tasks || new Array(TASKS.length).fill(false),
-      taskHours: song.taskHours || calculateTaskHours(song.estimatedHours || 40, song.isNewGenre || false),
-      timerRecords: song.timerRecords || [], // 计时记录数组
-      createdAt: song.createdAt || new Date().toISOString(),
-      updatedAt: song.updatedAt || new Date().toISOString()
-    }))
+    songs.value = savedSongs.map(song => {
+      // 数据迁移：如果歌曲没有 customTasks，使用默认的 TASKS
+      let customTasks = song.customTasks
+      if (!customTasks || !Array.isArray(customTasks) || customTasks.length === 0) {
+        customTasks = [...TASKS]
+      }
+      
+      // 确保 tasks 数组长度与 customTasks 一致
+      let tasks = song.tasks || []
+      if (tasks.length !== customTasks.length) {
+        // 如果长度不匹配，调整 tasks 数组
+        const newTasks = new Array(customTasks.length).fill(false)
+        // 保留原有的完成状态（如果索引存在）
+        tasks.forEach((completed, index) => {
+          if (index < newTasks.length) {
+            newTasks[index] = completed
+          }
+        })
+        tasks = newTasks
+      }
+      
+      // 确保 taskHours 数组长度与 customTasks 一致
+      let taskHours = song.taskHours || []
+      if (taskHours.length !== customTasks.length) {
+        // 如果长度不匹配，重新计算或调整
+        if (taskHours.length === 0) {
+          taskHours = calculateTaskHours(song.estimatedHours || 40, song.isNewGenre || false)
+          // 如果新计算的长度不匹配，需要调整
+          if (taskHours.length !== customTasks.length) {
+            const newTaskHours = new Array(customTasks.length).fill(0)
+            // 尝试按比例分配或复制值
+            taskHours.forEach((hours, index) => {
+              if (index < newTaskHours.length) {
+                newTaskHours[index] = hours
+              }
+            })
+            taskHours = newTaskHours
+          }
+        } else {
+          // 调整现有数组长度
+          const newTaskHours = new Array(customTasks.length).fill(0)
+          taskHours.forEach((hours, index) => {
+            if (index < newTaskHours.length) {
+              newTaskHours[index] = hours
+            }
+          })
+          taskHours = newTaskHours
+        }
+      }
+      
+      return {
+        ...song,
+        // 确保必要字段存在
+        id: song.id || generateId(),
+        customTasks: customTasks,
+        tasks: tasks,
+        taskHours: taskHours,
+        timerRecords: song.timerRecords || [], // 计时记录数组
+        createdAt: song.createdAt || new Date().toISOString(),
+        updatedAt: song.updatedAt || new Date().toISOString()
+      }
+    })
   }
 
   // 保存歌曲到 localStorage
@@ -57,6 +109,11 @@ export const useSongsStore = defineStore('songs', () => {
       
       // 深拷贝以确保没有响应式引用
       const plainSongs = songsArray.map(song => {
+        // 获取 customTasks，如果没有则使用默认 TASKS
+        const customTasks = Array.isArray(song.customTasks) && song.customTasks.length > 0
+          ? [...song.customTasks]
+          : [...TASKS]
+        
         // 创建一个纯对象，确保所有字段都是可序列化的
         return {
           id: song.id,
@@ -65,7 +122,8 @@ export const useSongsStore = defineStore('songs', () => {
           estimatedHours: song.estimatedHours || 40,
           isNewGenre: song.isNewGenre || false,
           currentStage: song.currentStage || '曲风研究',
-          tasks: Array.isArray(song.tasks) ? [...song.tasks] : new Array(TASKS.length).fill(false),
+          customTasks: customTasks,
+          tasks: Array.isArray(song.tasks) ? [...song.tasks] : new Array(customTasks.length).fill(false),
           taskHours: Array.isArray(song.taskHours) ? [...song.taskHours] : [],
           timeSpent: song.timeSpent || 0,
           timerRecords: Array.isArray(song.timerRecords) 
@@ -95,6 +153,50 @@ export const useSongsStore = defineStore('songs', () => {
 
   // 添加歌曲
   async function addSong(songData) {
+    // 获取 customTasks，如果没有则使用默认 TASKS
+    const customTasks = Array.isArray(songData.customTasks) && songData.customTasks.length > 0
+      ? [...songData.customTasks]
+      : [...TASKS]
+    
+    // 确保 tasks 和 taskHours 长度与 customTasks 一致
+    const tasksLength = customTasks.length
+    let tasks = songData.tasks || new Array(tasksLength).fill(false)
+    if (tasks.length !== tasksLength) {
+      const newTasks = new Array(tasksLength).fill(false)
+      tasks.forEach((completed, index) => {
+        if (index < newTasks.length) {
+          newTasks[index] = completed
+        }
+      })
+      tasks = newTasks
+    }
+    
+    let taskHours = songData.taskHours || calculateTaskHours(songData.estimatedHours || 40, songData.isNewGenre || false)
+    if (taskHours.length !== tasksLength) {
+      const newTaskHours = new Array(tasksLength).fill(0)
+      taskHours.forEach((hours, index) => {
+        if (index < newTaskHours.length) {
+          newTaskHours[index] = hours
+        }
+      })
+      // 如果新数组全为0，重新计算
+      if (newTaskHours.every(h => h === 0)) {
+        taskHours = calculateTaskHours(songData.estimatedHours || 40, songData.isNewGenre || false)
+        // 再次检查长度
+        if (taskHours.length !== tasksLength) {
+          const recalculated = new Array(tasksLength).fill(0)
+          taskHours.forEach((hours, index) => {
+            if (index < recalculated.length) {
+              recalculated[index] = hours
+            }
+          })
+          taskHours = recalculated
+        }
+      } else {
+        taskHours = newTaskHours
+      }
+    }
+    
     const newSong = {
       id: generateId(),
       name: songData.name || '未命名歌曲',
@@ -102,8 +204,9 @@ export const useSongsStore = defineStore('songs', () => {
       estimatedHours: songData.estimatedHours || 40,
       isNewGenre: songData.isNewGenre || false,
       currentStage: songData.currentStage || '曲风研究',
-      tasks: songData.tasks || new Array(TASKS.length).fill(false),
-      taskHours: songData.taskHours || calculateTaskHours(songData.estimatedHours || 40, songData.isNewGenre || false),
+      customTasks: customTasks,
+      tasks: tasks,
+      taskHours: taskHours,
       timeSpent: songData.timeSpent || 0,
       timerRecords: songData.timerRecords || [], // 计时记录数组
       notes: songData.notes || '',
@@ -392,13 +495,34 @@ export const useSongsStore = defineStore('songs', () => {
     try {
       const data = JSON.parse(jsonData)
       if (data.songs && Array.isArray(data.songs)) {
-      songs.value = data.songs.map(song => ({
-        ...song,
-        id: song.id || generateId(),
-        tasks: song.tasks || new Array(TASKS.length).fill(false),
-        timerRecords: song.timerRecords || [],
-        updatedAt: new Date().toISOString()
-      }))
+        songs.value = data.songs.map(song => {
+          // 数据迁移：如果歌曲没有 customTasks，使用默认的 TASKS
+          let customTasks = song.customTasks
+          if (!customTasks || !Array.isArray(customTasks) || customTasks.length === 0) {
+            customTasks = [...TASKS]
+          }
+          
+          // 确保 tasks 数组长度与 customTasks 一致
+          let tasks = song.tasks || []
+          if (tasks.length !== customTasks.length) {
+            const newTasks = new Array(customTasks.length).fill(false)
+            tasks.forEach((completed, index) => {
+              if (index < newTasks.length) {
+                newTasks[index] = completed
+              }
+            })
+            tasks = newTasks
+          }
+          
+          return {
+            ...song,
+            id: song.id || generateId(),
+            customTasks: customTasks,
+            tasks: tasks,
+            timerRecords: song.timerRecords || [],
+            updatedAt: new Date().toISOString()
+          }
+        })
         saveSongs()
         return { success: true, count: songs.value.length }
       }
