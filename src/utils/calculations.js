@@ -186,6 +186,99 @@ export function generateDailyPlan(songs, startDate, dailyLearningHours, dailyMak
   return dailyPlan
 }
 
+// 根据任务名称进行关键词匹配，返回匹配的阶段或null
+function matchStageByKeywords(taskName, taskIndex, totalTasks) {
+  const lowerTaskName = taskName.toLowerCase()
+  
+  // 检查是否包含"完成制作"或"完成"（且是最后一步）
+  if (taskIndex === totalTasks - 1) {
+    if (lowerTaskName.includes('完成制作') || lowerTaskName.includes('完成')) {
+      return '已完成'
+    }
+  }
+  
+  // 检查是否包含"校长"
+  if (lowerTaskName.includes('校长')) {
+    return '校长审核'
+  }
+  
+  // 检查是否包含"队长"且不包含"校长"
+  if (lowerTaskName.includes('队长') && !lowerTaskName.includes('校长')) {
+    return '队长审核'
+  }
+  
+  // 检查是否包含"混音"或"母带"
+  if (lowerTaskName.includes('混音') || lowerTaskName.includes('母带')) {
+    return '混音母带'
+  }
+  
+  // 检查是否包含"编曲"
+  if (lowerTaskName.includes('编曲')) {
+    return '编曲'
+  }
+  
+  // 检查是否包含"Demo"
+  if (lowerTaskName.includes('demo')) {
+    return 'Demo制作'
+  }
+  
+  // 检查是否包含"曲风"、"参考歌"、"前期准备"
+  if (lowerTaskName.includes('曲风') || lowerTaskName.includes('参考歌') || lowerTaskName.includes('前期准备')) {
+    return '曲风研究'
+  }
+  
+  return null
+}
+
+// 根据最后一个已完成步骤判断当前阶段
+export function getStageFromLastCompletedTask(song) {
+  if (!song || !song.tasks || !Array.isArray(song.tasks)) {
+    return '曲风研究'
+  }
+
+  // 获取 customTasks，如果没有则使用默认 TASKS
+  const customTasks = (Array.isArray(song.customTasks) && song.customTasks.length > 0)
+    ? song.customTasks
+    : TASKS
+
+  // 找到所有已完成的步骤索引
+  const completedIndices = []
+  song.tasks.forEach((completed, index) => {
+    if (completed && index < customTasks.length) {
+      completedIndices.push(index)
+    }
+  })
+
+  // 如果没有任何步骤完成，对第一项进行匹配
+  if (completedIndices.length === 0) {
+    if (customTasks.length === 0) {
+      return '曲风研究'
+    }
+    const firstTaskName = customTasks[0] || ''
+    const matchedStage = matchStageByKeywords(firstTaskName, 0, customTasks.length)
+    // 如果匹配上就展示，匹配不上就展示原文
+    return matchedStage || firstTaskName || '曲风研究'
+  }
+
+  // 如果所有步骤都已完成，返回"已完成"
+  if (completedIndices.length === customTasks.length) {
+    return '已完成'
+  }
+
+  // 获取最后一个已完成步骤的索引和名称
+  const lastCompletedIndex = completedIndices[completedIndices.length - 1]
+  const lastCompletedTaskName = customTasks[lastCompletedIndex] || ''
+
+  // 策略1：关键词匹配（优先）
+  const matchedStage = matchStageByKeywords(lastCompletedTaskName, lastCompletedIndex, customTasks.length)
+  if (matchedStage) {
+    return matchedStage
+  }
+
+  // 策略2：如果关键词匹配失败，返回步骤名称原文
+  return lastCompletedTaskName || '曲风研究'
+}
+
 // 计算项目整体统计
 export function calculateProjectStats(songs) {
   const totalSongs = songs.length

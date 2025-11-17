@@ -57,15 +57,10 @@
         
         <div class="form-group">
           <label>当前阶段</label>
-          <select v-model="formData.currentStage">
-            <option value="曲风研究">曲风研究</option>
-            <option value="Demo制作">Demo制作</option>
-            <option value="编曲">编曲</option>
-            <option value="混音母带">混音母带</option>
-            <option value="队长审核">队长审核</option>
-            <option value="校长审核">校长审核</option>
-            <option value="已完成">已完成</option>
-          </select>
+          <div class="current-stage-display">{{ formData.currentStage }}</div>
+          <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
+            根据已完成步骤的最后一项自动判断
+          </small>
         </div>
         
         <div class="form-group">
@@ -164,7 +159,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { TASKS } from '@/utils/constants'
-import { calculateTaskHours } from '@/utils/calculations'
+import { calculateTaskHours, getStageFromLastCompletedTask } from '@/utils/calculations'
 import { useSongsStore } from '@/stores/songs'
 import { formatDuration } from '@/utils/helpers'
 
@@ -250,12 +245,20 @@ watch(() => props.song, (song) => {
       }
     }
     
+    // 根据 tasks 自动计算 currentStage
+    const tempSong = {
+      ...song,
+      customTasks: customTasks,
+      tasks: tasks
+    }
+    const calculatedStage = getStageFromLastCompletedTask(tempSong)
+    
     formData.value = {
       name: song.name,
       genre: song.genre || '',
       estimatedHours: song.estimatedHours || 40,
       isNewGenre: song.isNewGenre || false,
-      currentStage: song.currentStage || '曲风研究',
+      currentStage: calculatedStage,
       customTasks: customTasks,
       tasks: tasks,
       taskHours: taskHours,
@@ -283,6 +286,24 @@ watch(() => props.song, (song) => {
     showTaskHours.value = false
   }
 }, { immediate: true })
+
+// 监听 tasks 变化，自动更新 currentStage
+watch(() => formData.value.tasks, () => {
+  const tempSong = {
+    customTasks: formData.value.customTasks,
+    tasks: formData.value.tasks
+  }
+  formData.value.currentStage = getStageFromLastCompletedTask(tempSong)
+}, { deep: true })
+
+// 监听 customTasks 变化，也更新 currentStage（因为步骤名称可能改变）
+watch(() => formData.value.customTasks, () => {
+  const tempSong = {
+    customTasks: formData.value.customTasks,
+    tasks: formData.value.tasks
+  }
+  formData.value.currentStage = getStageFromLastCompletedTask(tempSong)
+}, { deep: true })
 
 function handleEstimatedHoursChange() {
   // 当预计时长改变时，显示任务时长分配
@@ -450,6 +471,13 @@ function syncArrays() {
   while (formData.value.taskHours.length > targetLength) {
     formData.value.taskHours.pop()
   }
+  
+  // 同步后更新 currentStage
+  const tempSong = {
+    customTasks: formData.value.customTasks,
+    tasks: formData.value.tasks
+  }
+  formData.value.currentStage = getStageFromLastCompletedTask(tempSong)
 }
 
 function handleSave() {

@@ -2,7 +2,7 @@
   <div class="song-card">
     <div class="song-header">
       <div class="song-title">{{ song.name }}</div>
-      <div class="song-stage" :class="`stage-${song.currentStage}`">
+      <div class="song-stage">
         当前阶段：{{ song.currentStage }}
       </div>
     </div>

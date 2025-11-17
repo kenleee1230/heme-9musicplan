@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { STORAGE_KEY, TASKS, TARGET_SONGS } from '@/utils/constants'
 import { loadFromStorage, saveToStorage } from '@/utils/storage'
 import { generateId } from '@/utils/helpers'
-import { calculateProgress, calculateTaskHours, calculateProjectStats } from '@/utils/calculations'
+import { calculateProgress, calculateTaskHours, calculateProjectStats, getStageFromLastCompletedTask } from '@/utils/calculations'
 import { useFirestore } from '@/composables/useFirestore'
 import { useAuthStore } from './auth'
 
@@ -87,6 +87,13 @@ export const useSongsStore = defineStore('songs', () => {
         }
       }
       
+      // 根据 tasks 重新计算 currentStage（数据迁移）
+      const tempSong = {
+        customTasks: customTasks,
+        tasks: tasks
+      }
+      const calculatedStage = getStageFromLastCompletedTask(tempSong)
+      
       return {
         ...song,
         // 确保必要字段存在
@@ -94,6 +101,7 @@ export const useSongsStore = defineStore('songs', () => {
         customTasks: customTasks,
         tasks: tasks,
         taskHours: taskHours,
+        currentStage: calculatedStage, // 使用计算出的阶段
         timerRecords: song.timerRecords || [], // 计时记录数组
         createdAt: song.createdAt || new Date().toISOString(),
         updatedAt: song.updatedAt || new Date().toISOString()
@@ -197,13 +205,20 @@ export const useSongsStore = defineStore('songs', () => {
       }
     }
     
+    // 根据 tasks 自动计算 currentStage
+    const tempSong = {
+      customTasks: customTasks,
+      tasks: tasks
+    }
+    const calculatedStage = getStageFromLastCompletedTask(tempSong)
+    
     const newSong = {
       id: generateId(),
       name: songData.name || '未命名歌曲',
       genre: songData.genre || '',
       estimatedHours: songData.estimatedHours || 40,
       isNewGenre: songData.isNewGenre || false,
-      currentStage: songData.currentStage || '曲风研究',
+      currentStage: calculatedStage,
       customTasks: customTasks,
       tasks: tasks,
       taskHours: taskHours,
@@ -233,6 +248,21 @@ export const useSongsStore = defineStore('songs', () => {
   async function updateSong(id, updates) {
     const index = songs.value.findIndex(s => s.id === id)
     if (index !== -1) {
+      // 如果更新了 tasks 或 customTasks，自动计算 currentStage
+      if (updates.tasks !== undefined || updates.customTasks !== undefined) {
+        const existingSong = songs.value[index]
+        const customTasks = updates.customTasks !== undefined 
+          ? (Array.isArray(updates.customTasks) && updates.customTasks.length > 0 ? updates.customTasks : existingSong.customTasks)
+          : existingSong.customTasks
+        const tasks = updates.tasks !== undefined ? updates.tasks : existingSong.tasks
+        
+        const tempSong = {
+          customTasks: customTasks,
+          tasks: tasks
+        }
+        updates.currentStage = getStageFromLastCompletedTask(tempSong)
+      }
+      
       songs.value[index] = {
         ...songs.value[index],
         ...updates,

@@ -150,47 +150,15 @@ async function saveRecord() {
     }
 
     // 本地保存成功
-    syncStatus.value = 'success'
-
-    // 如果已登录，尝试同步到云端（后台进行，不阻塞）
+    // addTimerRecord 内部已经处理了云端同步，这里不需要重复同步
     if (authStore.isAuthenticated) {
       syncStatus.value = 'syncing'
-      // 异步同步，不等待结果
-      Promise.resolve().then(async () => {
-        try {
-          const { updateSongInCloud } = useFirestore()
-          const song = songsStore.getSongById(pendingRecord.value.songId)
-          if (song) {
-            await updateSongInCloud(pendingRecord.value.songId, {
-              timerRecords: song.timerRecords,
-              timeSpent: song.timeSpent,
-              updatedAt: song.updatedAt
-            })
-            // 同步成功，更新状态
-            if (syncStatus.value === 'syncing') {
-              syncStatus.value = 'synced'
-            }
-          }
-        } catch (error) {
-          console.error('云端同步失败:', error)
-          // 云端同步失败不影响本地保存，只更新状态提示
-          if (syncStatus.value === 'syncing') {
-            syncStatus.value = 'error'
-            // 加入重试队列
-            const { useTimerSyncStore } = await import('@/stores/timerSync')
-            const timerSyncStore = useTimerSyncStore()
-            const song = songsStore.getSongById(pendingRecord.value.songId)
-            if (song) {
-              const savedRecord = song.timerRecords?.find(r => r.id === record.id)
-              if (savedRecord) {
-                timerSyncStore.addToQueue(pendingRecord.value.songId, savedRecord)
-              }
-            }
-          }
-        }
-      }).catch(err => {
-        console.error('同步处理出错:', err)
-      })
+      // 给一点时间让 addTimerRecord 内部的同步完成
+      setTimeout(() => {
+        syncStatus.value = 'synced'
+      }, 500)
+    } else {
+      syncStatus.value = 'success'
     }
 
     // 延迟关闭对话框，让用户看到状态
