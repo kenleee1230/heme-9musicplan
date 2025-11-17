@@ -38,7 +38,7 @@
         <g v-for="(key, index) in CIRCLE_OF_FIFTHS" :key="`minor-${index}`">
           <path
             :d="createSectorPath(400, 400, 150, 250, getAngle(index), getAngle(index + 1))"
-            :fill="hoveredKey === key.minor ? '#1a1a1a' : '#f5f5f5'"
+            :fill="hoveredKey === key.minor ? '#1a1a1a' : '#d0d0d0'"
             stroke="#1a1a1a"
             stroke-width="2"
             @mouseenter="hoveredKey = key.minor"
@@ -52,7 +52,7 @@
             text-anchor="middle"
             dominant-baseline="middle"
             font-size="20"
-            :fill="hoveredKey === key.minor ? '#ffffff' : '#666'"
+            :fill="hoveredKey === key.minor ? '#ffffff' : '#333'"
             pointer-events="none"
           >
             {{ key.minor }}

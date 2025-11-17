@@ -7,11 +7,16 @@
 - **Vue 3** - 使用 Composition API
 - **Vite** - 极速构建工具
 - **Pinia** - 状态管理
-- **Firebase** - 认证和云端存储
+- **Firebase** - 认证、云端存储和托管部署
   - Authentication (邮箱/密码登录)
   - Firestore (云端数据库)
+  - Hosting (生产环境部署)
 - **PWA** - 渐进式 Web 应用，可安装到桌面
-- **Netlify** - 前端部署
+- **Netlify** - 前端部署（备选方案）
+
+## 📜 项目历史
+
+本项目最初使用原生 JavaScript 开发（见 `legacy/` 目录），后升级为 Vue 3 框架以获得更好的可维护性和开发体验。
 
 ## ✨ 功能特点
 
@@ -50,18 +55,20 @@ npm install
 1. 在 [Firebase Console](https://console.firebase.google.com/) 创建项目
 2. 启用 Authentication (Email/Password)
 3. 创建 Firestore 数据库
-4. 复制 Firebase 配置
+4. 在项目设置中复制 Firebase 配置信息
 
-创建 `.env.local` 文件：
+在项目根目录创建 `.env.local` 文件（该文件已在 .gitignore 中，不会被提交）：
 
 ```env
-VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_API_KEY=your_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 ```
+
+**注意**：将上述配置中的占位符替换为你在 Firebase Console 中获取的实际值。
 
 ### Firestore 安全规则
 
@@ -101,9 +108,38 @@ npm run build
 npm run preview
 ```
 
-## 🌐 部署到 Netlify
+## 🌐 部署
 
-### 方式一：通过 Git 连接
+### 部署到 Firebase Hosting（推荐）
+
+1. 安装 Firebase CLI：
+```bash
+npm install -g firebase-tools
+```
+
+2. 登录 Firebase：
+```bash
+firebase login
+```
+
+3. 初始化 Firebase（如果还未初始化）：
+```bash
+firebase init hosting
+# 选择现有项目
+# Public directory: dist
+# Single-page app: Yes
+# 不覆盖 index.html
+```
+
+4. 构建并部署：
+```bash
+npm run build
+firebase deploy --only hosting
+```
+
+### 部署到 Netlify（备选方案）
+
+#### 方式一：通过 Git 连接
 
 1. 将代码推送到 GitHub/GitLab
 2. 在 [Netlify](https://netlify.com) 创建新站点
@@ -114,7 +150,7 @@ npm run preview
 5. 添加环境变量（所有 `VITE_FIREBASE_*` 变量）
 6. 部署！
 
-### 方式二：手动部署
+#### 方式二：手动部署
 
 ```bash
 npm run build

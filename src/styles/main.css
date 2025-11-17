@@ -399,6 +399,21 @@ section {
     color: #333;
 }
 
+.form-group .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-group .checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.form-group .checkbox-label span {
+    font-weight: 600;
+}
+
 .form-group input,
 .form-group select,
 .form-group textarea {
@@ -433,6 +448,54 @@ section {
     background: #f8f9fa;
     padding: 15px;
     border-radius: 8px;
+}
+
+.task-hours-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.task-hour-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+}
+
+.task-hour-label {
+    font-size: 0.9em;
+    color: #555;
+    font-weight: normal;
+    margin: 0;
+}
+
+.task-hour-input {
+    width: 80px !important;
+    padding: 8px !important;
+    text-align: right;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.85em;
+    margin-left: 10px;
+    background: #e0e0e0;
+    color: #333;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-small:hover {
+    background: #d0d0d0;
+    border-color: #b0b0b0;
 }
 
 .task-checklist label {

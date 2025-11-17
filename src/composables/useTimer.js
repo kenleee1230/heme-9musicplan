@@ -123,7 +123,7 @@ export function useTimer() {
       ? timer.value.elapsedSeconds
       : calculateElapsed(timer.value.startTime)
 
-    const hours = parseFloat((finalElapsed / 3600).toFixed(2))
+    const hours = Math.round((finalElapsed / 3600) * 10) / 10
 
     const result = {
       songId: timer.value.songId,
