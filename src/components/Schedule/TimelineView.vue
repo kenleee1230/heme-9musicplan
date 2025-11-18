@@ -13,17 +13,6 @@
         <p><strong>目标：</strong>{{ remainingDays }} 天内完成 {{ TARGET_SONGS }} 首歌（共 {{ TOTAL_DAYS }} 天）</p>
         <p><strong>每首歌：</strong>{{ avgHoursPerSong.toFixed(0) }} 有效小时</p>
         <p><strong>总工作量：</strong>{{ totalHours.toFixed(0) }} 有效小时</p>
-        <div class="timeline-section">
-          <strong>时间安排：</strong><br>
-          • 每天 {{ RECOMMENDED_HOURS_PER_DAY }} 小时（已养成习惯）：{{ daysAtRecommended.toFixed(0) }} 天完成，约 {{ (daysAtRecommended / avgHoursPerSong).toFixed(1) }} 首歌/周<br>
-          • 每天 {{ MAX_HOURS_PER_DAY }} 小时（最大强度）：{{ daysAtMax.toFixed(0) }} 天完成，约 {{ (daysAtMax / avgHoursPerSong).toFixed(1) }} 首歌/周<br>
-          <span class="success-text">✓ 维持每天2小时的习惯，{{ TOTAL_DAYS }}天可以完成9首歌，一定能拿回全部押金！</span>
-        </div>
-        <div class="timeline-section">
-          <strong>时间分配建议：</strong><br>
-          • 学习：{{ (RECOMMENDED_HOURS_PER_DAY * 0.3).toFixed(1) }} 小时/天 (30%)<br>
-          • 编曲实践：{{ (RECOMMENDED_HOURS_PER_DAY * 0.7).toFixed(1) }} 小时/天 (70%)
-        </div>
       </div>
       
       <!-- 每首歌的预计完成时间 -->
@@ -50,8 +39,7 @@ import {
   TARGET_SONGS, 
   TOTAL_DAYS, 
   HOURS_PER_SONG, 
-  RECOMMENDED_HOURS_PER_DAY, 
-  MAX_HOURS_PER_DAY 
+  RECOMMENDED_HOURS_PER_DAY
 } from '@/utils/constants'
 import { calculateProgress, getRemainingDays } from '@/utils/calculations'
 
@@ -81,14 +69,6 @@ const avgHoursPerSong = computed(() => {
 })
 
 const totalHours = computed(() => TARGET_SONGS * avgHoursPerSong.value)
-
-const daysAtRecommended = computed(() => {
-  return totalHours.value / RECOMMENDED_HOURS_PER_DAY
-})
-
-const daysAtMax = computed(() => {
-  return totalHours.value / MAX_HOURS_PER_DAY
-})
 
 function formatDate(date) {
   const year = date.getFullYear()

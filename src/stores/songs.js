@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { STORAGE_KEY, TASKS, TARGET_SONGS } from '@/utils/constants'
+import { STORAGE_KEY, TASKS, TARGET_SONGS, TOTAL_DAYS, START_DATE_KEY } from '@/utils/constants'
 import { loadFromStorage, saveToStorage } from '@/utils/storage'
 import { generateId } from '@/utils/helpers'
 import { calculateProgress, calculateTaskHours, calculateProjectStats, getStageFromLastCompletedTask } from '@/utils/calculations'
@@ -37,7 +37,18 @@ export const useSongsStore = defineStore('songs', () => {
   // 从 localStorage 加载歌曲
   function loadSongs() {
     const savedSongs = loadFromStorage(STORAGE_KEY, [])
-    songs.value = savedSongs.map(song => {
+    
+    // 获取项目开始日期，用于计算默认 startDate
+    const projectStartDate = loadFromStorage(START_DATE_KEY)
+    let projectStart = null
+    if (projectStartDate) {
+      projectStart = new Date(projectStartDate)
+    } else {
+      // 如果没有项目开始日期，使用默认值
+      projectStart = new Date('2025-11-08')
+    }
+    
+    songs.value = savedSongs.map((song, index) => {
       // 数据迁移：如果歌曲没有 customTasks，使用默认的 TASKS
       let customTasks = song.customTasks
       if (!customTasks || !Array.isArray(customTasks) || customTasks.length === 0) {
@@ -87,6 +98,16 @@ export const useSongsStore = defineStore('songs', () => {
         }
       }
       
+      // 计算默认 startDate（如果歌曲没有设置 startDate）
+      let startDate = song.startDate || ''
+      if (!startDate && projectStart) {
+        // 计算默认开始日期：项目开始日期 + 索引 × (总天数 / 目标歌曲数)
+        const daysOffset = Math.floor(index * (TOTAL_DAYS / TARGET_SONGS))
+        const defaultStartDate = new Date(projectStart)
+        defaultStartDate.setDate(projectStart.getDate() + daysOffset)
+        startDate = defaultStartDate.toISOString().split('T')[0] // 格式化为 YYYY-MM-DD
+      }
+      
       // 根据 tasks 重新计算 currentStage（数据迁移）
       const tempSong = {
         customTasks: customTasks,
@@ -102,6 +123,7 @@ export const useSongsStore = defineStore('songs', () => {
         tasks: tasks,
         taskHours: taskHours,
         currentStage: calculatedStage, // 使用计算出的阶段
+        startDate: startDate, // 开始制作时间（可能已计算默认值）
         timerRecords: song.timerRecords || [], // 计时记录数组
         createdAt: song.createdAt || new Date().toISOString(),
         updatedAt: song.updatedAt || new Date().toISOString()
@@ -134,6 +156,7 @@ export const useSongsStore = defineStore('songs', () => {
           tasks: Array.isArray(song.tasks) ? [...song.tasks] : new Array(customTasks.length).fill(false),
           taskHours: Array.isArray(song.taskHours) ? [...song.taskHours] : [],
           timeSpent: song.timeSpent || 0,
+          startDate: song.startDate || '',
           timerRecords: Array.isArray(song.timerRecords) 
             ? song.timerRecords.map(record => ({
                 id: record.id,
@@ -223,6 +246,7 @@ export const useSongsStore = defineStore('songs', () => {
       tasks: tasks,
       taskHours: taskHours,
       timeSpent: songData.timeSpent || 0,
+      startDate: songData.startDate || '', // 开始制作时间
       timerRecords: songData.timerRecords || [], // 计时记录数组
       notes: songData.notes || '',
       createdAt: new Date().toISOString(),

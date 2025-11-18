@@ -1,4 +1,4 @@
-import { TASKS, TASK_TIME_RATIOS, TOTAL_DAYS, MAX_HOURS_PER_DAY } from './constants'
+import { TASKS, TASK_TIME_RATIOS, TOTAL_DAYS, MAX_HOURS_PER_DAY, TARGET_SONGS } from './constants'
 
 // 计算歌曲进度（基于已完成任务数）
 export function calculateProgress(song) {
@@ -82,6 +82,126 @@ export function getRemainingDays(startDate) {
   return Math.max(0, remaining)
 }
 
+// 智能推断歌曲开始日期（三级推断策略）
+// 优先级0：手动设置的 startDate（最高优先级）
+// 优先级1：使用最早的计时记录日期
+// 优先级2：使用创建日期
+// 优先级3：使用默认计算（项目开始日期 + 索引偏移）
+export function getSongStartDate(song, projectStartDate, songIndex) {
+  if (!song) {
+    console.debug('[getSongStartDate] song 为空，返回 null')
+    return null
+  }
+  
+  // 优先级0：如果歌曲有手动设置的 startDate，优先使用（即使解析失败也不使用推断）
+  if (song.startDate && typeof song.startDate === 'string' && song.startDate.trim() !== '') {
+    const dateStr = song.startDate.trim()
+    console.debug(`[getSongStartDate] 检测到手动设置的 startDate: "${dateStr}"`)
+    let parsedDate = null
+    
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // YYYY-MM-DD 格式，手动解析避免时区问题
+      const [year, month, day] = dateStr.split('-').map(Number)
+      parsedDate = new Date(year, month - 1, day)
+      parsedDate.setHours(0, 0, 0, 0)
+      if (!isNaN(parsedDate.getTime())) {
+        console.debug(`[getSongStartDate] ✅ 手动设置的 startDate 解析成功: ${parsedDate.toISOString().split('T')[0]}`)
+        return parsedDate
+      } else {
+        console.warn(`[getSongStartDate] ⚠️ 手动设置的 startDate 解析失败 (YYYY-MM-DD格式): "${dateStr}"`)
+      }
+    } else {
+      // 其他格式，尝试直接解析
+      parsedDate = new Date(dateStr)
+      parsedDate.setHours(0, 0, 0, 0)
+      if (!isNaN(parsedDate.getTime())) {
+        console.debug(`[getSongStartDate] ✅ 手动设置的 startDate 解析成功 (其他格式): ${parsedDate.toISOString().split('T')[0]}`)
+        return parsedDate
+      } else {
+        console.warn(`[getSongStartDate] ⚠️ 手动设置的 startDate 解析失败 (其他格式): "${dateStr}"`)
+      }
+    }
+    
+    // 如果手动设置的 startDate 解析失败，返回 null（不使用推断逻辑）
+    // 这样可以避免用户设置了错误日期时被推断逻辑覆盖
+    console.debug('[getSongStartDate] 手动设置的 startDate 解析失败，返回 null（不使用推断逻辑）')
+    return null
+  } else {
+    console.debug(`[getSongStartDate] 未检测到手动设置的 startDate (值: ${song.startDate}, 类型: ${typeof song.startDate})，继续使用推断逻辑`)
+  }
+  
+  // 只有在没有手动设置 startDate 的情况下，才使用推断逻辑
+  
+  // 优先级1：使用最早的计时记录日期
+  if (song.timerRecords && Array.isArray(song.timerRecords) && song.timerRecords.length > 0) {
+    console.debug(`[getSongStartDate] 🔍 优先级1: 检查计时记录 (${song.timerRecords.length} 条)`)
+    let earliestDate = null
+    
+    song.timerRecords.forEach((record, idx) => {
+      // 优先使用 startTime，其次使用 createdAt
+      const timeStr = record.startTime || record.createdAt
+      if (timeStr) {
+        const recordDate = new Date(timeStr)
+        recordDate.setHours(0, 0, 0, 0)
+        if (!isNaN(recordDate.getTime())) {
+          if (!earliestDate || recordDate < earliestDate) {
+            earliestDate = recordDate
+            console.debug(`[getSongStartDate]   记录 ${idx + 1}: ${recordDate.toISOString().split('T')[0]} (${timeStr})`)
+          }
+        }
+      }
+    })
+    
+    if (earliestDate) {
+      console.debug(`[getSongStartDate] ✅ 优先级1成功: 使用最早的计时记录日期 ${earliestDate.toISOString().split('T')[0]}`)
+      return earliestDate
+    } else {
+      console.debug('[getSongStartDate] ⚠️ 优先级1失败: 计时记录中没有有效日期')
+    }
+  } else {
+    console.debug('[getSongStartDate] ⏭️ 优先级1跳过: 没有计时记录')
+  }
+  
+  // 优先级2：使用创建日期
+  if (song.createdAt) {
+    console.debug(`[getSongStartDate] 🔍 优先级2: 检查创建日期 ${song.createdAt}`)
+    const createdDate = new Date(song.createdAt)
+    createdDate.setHours(0, 0, 0, 0)
+    if (!isNaN(createdDate.getTime())) {
+      console.debug(`[getSongStartDate] ✅ 优先级2成功: 使用创建日期 ${createdDate.toISOString().split('T')[0]}`)
+      return createdDate
+    } else {
+      console.warn(`[getSongStartDate] ⚠️ 优先级2失败: 创建日期解析失败 "${song.createdAt}"`)
+    }
+  } else {
+    console.debug('[getSongStartDate] ⏭️ 优先级2跳过: 没有创建日期')
+  }
+  
+  // 优先级3：使用默认计算（项目开始日期 + 索引偏移）
+  if (projectStartDate && typeof songIndex === 'number') {
+    console.debug(`[getSongStartDate] 🔍 优先级3: 使用默认计算 (项目开始: ${projectStartDate}, 索引: ${songIndex})`)
+    const projectStart = new Date(projectStartDate)
+    projectStart.setHours(0, 0, 0, 0)
+    
+    if (!isNaN(projectStart.getTime())) {
+      const daysOffset = Math.floor(songIndex * (TOTAL_DAYS / TARGET_SONGS))
+      const defaultDate = new Date(projectStart)
+      defaultDate.setDate(projectStart.getDate() + daysOffset)
+      defaultDate.setHours(0, 0, 0, 0)
+      console.debug(`[getSongStartDate] ✅ 优先级3成功: 使用默认计算 ${defaultDate.toISOString().split('T')[0]} (偏移 ${daysOffset} 天)`)
+      return defaultDate
+    } else {
+      console.warn(`[getSongStartDate] ⚠️ 优先级3失败: 项目开始日期解析失败 "${projectStartDate}"`)
+    }
+  } else {
+    console.debug(`[getSongStartDate] ⏭️ 优先级3跳过: projectStartDate=${projectStartDate}, songIndex=${songIndex}`)
+  }
+  
+  // 如果所有推断都失败，返回 null
+  console.warn('[getSongStartDate] ❌ 所有推断都失败，返回 null')
+  return null
+}
+
 // 生成每日任务计划
 export function generateDailyPlan(songs, startDate, dailyLearningHours, dailyMakingHours) {
   const dailyMakingTime = Math.max(0, dailyMakingHours - dailyLearningHours)
@@ -103,12 +223,13 @@ export function generateDailyPlan(songs, startDate, dailyLearningHours, dailyMak
   })
   
   const dailyPlan = []
-  const start = new Date(startDate)
-  const endDate = new Date(start)
-  endDate.setDate(start.getDate() + TOTAL_DAYS)
+  const projectStart = new Date(startDate)
+  projectStart.setHours(0, 0, 0, 0)
+  const endDate = new Date(projectStart)
+  endDate.setDate(projectStart.getDate() + TOTAL_DAYS)
   
-  // 为每首歌创建任务队列
-  const songQueues = activeSongs.map(song => {
+  // 为每首歌创建任务队列，并记录每首歌的开始日期
+  const songQueues = activeSongs.map((song, index) => {
     const queue = []
     
     // 获取 customTasks，如果没有则使用默认 TASKS
@@ -132,11 +253,28 @@ export function generateDailyPlan(songs, startDate, dailyLearningHours, dailyMak
       }
     })
     
-    return { songId: song.id, queue }
+    // 使用智能推断函数计算歌曲的开始日期
+    let songStartDate = getSongStartDate(song, startDate, index)
+    
+    // 如果推断失败，使用默认计算作为兜底
+    if (!songStartDate || isNaN(songStartDate.getTime())) {
+      const daysOffset = Math.floor(index * (TOTAL_DAYS / TARGET_SONGS))
+      songStartDate = new Date(projectStart)
+      songStartDate.setDate(projectStart.getDate() + daysOffset)
+      songStartDate.setHours(0, 0, 0, 0)
+    }
+    
+    return { 
+      songId: song.id, 
+      queue,
+      startDate: songStartDate
+    }
   })
   
   // 分配任务到每一天
-  let currentDate = new Date(today)
+  // 从项目开始日期开始，而不是从今天开始
+  let currentDate = new Date(projectStart)
+  currentDate.setHours(0, 0, 0, 0)
   let currentDayIndex = 0
   
   while (currentDate <= endDate && songQueues.some(sq => sq.queue.length > 0)) {
@@ -150,24 +288,43 @@ export function generateDailyPlan(songs, startDate, dailyLearningHours, dailyMak
     
     let availableHours = dailyMakingTime
     
-    // 轮询分配任务
-    for (const songQueue of songQueues) {
-      if (songQueue.queue.length > 0 && availableHours > 0) {
-        const task = songQueue.queue[0]
-        const hoursToAllocate = Math.min(task.remainingHours, availableHours)
+    // 轮询分配任务：只分配给 startDate 已到的歌曲（支持并行制作）
+    // 多轮分配，直到当天时间用完或所有符合条件的歌曲都分配完
+    let hasMoreWork = true
+    while (availableHours > 0 && hasMoreWork) {
+      hasMoreWork = false
+      
+      for (const songQueue of songQueues) {
+        // 检查歌曲的开始日期是否已到（使用本地时间比较）
+        if (songQueue.startDate) {
+          const songStart = new Date(songQueue.startDate)
+          songStart.setHours(0, 0, 0, 0)
+          const current = new Date(currentDate)
+          current.setHours(0, 0, 0, 0)
+          if (current < songStart) {
+            continue // 歌曲还未开始，跳过
+          }
+        }
         
-        dayPlan.tasks.push({
-          ...task,
-          allocatedHours: hoursToAllocate
-        })
-        
-        task.remainingHours -= hoursToAllocate
-        availableHours -= hoursToAllocate
-        dayPlan.totalHours += hoursToAllocate
-        
-        // 如果任务完成，移出队列
-        if (task.remainingHours <= 0) {
-          songQueue.queue.shift()
+        if (songQueue.queue.length > 0 && availableHours > 0) {
+          const task = songQueue.queue[0]
+          const hoursToAllocate = Math.min(task.remainingHours, availableHours)
+          
+          dayPlan.tasks.push({
+            ...task,
+            allocatedHours: hoursToAllocate
+          })
+          
+          task.remainingHours -= hoursToAllocate
+          availableHours -= hoursToAllocate
+          dayPlan.totalHours += hoursToAllocate
+          
+          // 如果任务完成，移出队列
+          if (task.remainingHours <= 0) {
+            songQueue.queue.shift()
+          }
+          
+          hasMoreWork = true // 还有工作要做
         }
       }
     }
@@ -177,6 +334,7 @@ export function generateDailyPlan(songs, startDate, dailyLearningHours, dailyMak
     }
     
     currentDate.setDate(currentDate.getDate() + 1)
+    currentDate.setHours(0, 0, 0, 0)
     currentDayIndex++
     
     // 防止无限循环
@@ -249,34 +407,35 @@ export function getStageFromLastCompletedTask(song) {
     }
   })
 
-  // 如果没有任何步骤完成，对第一项进行匹配
-  if (completedIndices.length === 0) {
-    if (customTasks.length === 0) {
-      return '曲风研究'
-    }
-    const firstTaskName = customTasks[0] || ''
-    const matchedStage = matchStageByKeywords(firstTaskName, 0, customTasks.length)
-    // 如果匹配上就展示，匹配不上就展示原文
-    return matchedStage || firstTaskName || '曲风研究'
-  }
-
   // 如果所有步骤都已完成，返回"已完成"
   if (completedIndices.length === customTasks.length) {
     return '已完成'
   }
 
-  // 获取最后一个已完成步骤的索引和名称
-  const lastCompletedIndex = completedIndices[completedIndices.length - 1]
-  const lastCompletedTaskName = customTasks[lastCompletedIndex] || ''
-
-  // 策略1：关键词匹配（优先）
-  const matchedStage = matchStageByKeywords(lastCompletedTaskName, lastCompletedIndex, customTasks.length)
-  if (matchedStage) {
-    return matchedStage
+  // 找到第一个未完成的步骤
+  let firstIncompleteIndex = -1
+  for (let i = 0; i < customTasks.length; i++) {
+    if (!song.tasks[i]) {
+      firstIncompleteIndex = i
+      break
+    }
   }
 
-  // 策略2：如果关键词匹配失败，返回步骤名称原文
-  return lastCompletedTaskName || '曲风研究'
+  // 如果找到了未完成的步骤，返回该步骤对应的阶段
+  if (firstIncompleteIndex >= 0) {
+    const taskName = customTasks[firstIncompleteIndex] || ''
+    const matchedStage = matchStageByKeywords(taskName, firstIncompleteIndex, customTasks.length)
+    // 如果匹配上就展示，匹配不上就展示原文
+    return matchedStage || taskName || '曲风研究'
+  }
+
+  // 如果所有都没完成（理论上不应该到这里，但作为兜底），返回第一项
+  if (customTasks.length === 0) {
+    return '曲风研究'
+  }
+  const firstTaskName = customTasks[0] || ''
+  const matchedStage = matchStageByKeywords(firstTaskName, 0, customTasks.length)
+  return matchedStage || firstTaskName || '曲风研究'
 }
 
 // 计算项目整体统计

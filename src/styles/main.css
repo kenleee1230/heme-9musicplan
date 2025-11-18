@@ -1261,7 +1261,8 @@ section {
     color: #666;
 }
 
-.gantt-song-bar-container {
+/* 这些样式已被 GanttChart.vue 组件中的 scoped 样式替代，保留用于向后兼容 */
+/* .gantt-song-bar-container {
     flex: 1;
     position: relative;
     height: 40px;
@@ -1277,7 +1278,7 @@ section {
     background: rgba(26, 26, 26, 0.1);
     border-radius: 0;
     border: 1px solid rgba(26, 26, 26, 0.2);
-}
+} */
 
 .gantt-song-progress {
     height: 100%;

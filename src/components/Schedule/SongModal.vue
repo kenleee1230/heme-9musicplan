@@ -56,11 +56,23 @@
         </div>
         
         <div class="form-group">
+          <label>开始制作时间</label>
+          <input v-model="formData.startDate" type="date" />
+          <small>设置这首歌的开始制作日期</small>
+          <div v-if="!formData.startDate && inferredStartDate" class="inferred-date-hint">
+            <small style="color: #666;">
+              系统推断的开始日期：{{ formatInferredDate(inferredStartDate) }} 
+              <span style="color: #999;">（基于{{ inferredDateSource }}）</span>
+            </small>
+          </div>
+        </div>
+        
+        <div class="form-group">
           <label>当前阶段</label>
           <div class="current-stage-display">{{ formData.currentStage }}</div>
-          <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
+          <!--<small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
             根据已完成步骤的最后一项自动判断
-          </small>
+          </small>-->
         </div>
         
         <div class="form-group">
@@ -158,9 +170,11 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import { TASKS } from '@/utils/constants'
-import { calculateTaskHours, getStageFromLastCompletedTask } from '@/utils/calculations'
+import { calculateTaskHours, getStageFromLastCompletedTask, getSongStartDate } from '@/utils/calculations'
 import { useSongsStore } from '@/stores/songs'
+import { useSettingsStore } from '@/stores/settings'
 import { formatDuration } from '@/utils/helpers'
 
 const props = defineProps({
@@ -170,6 +184,9 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save'])
 
 const songsStore = useSongsStore()
+const settingsStore = useSettingsStore()
+const { startDate: projectStartDate } = storeToRefs(settingsStore)
+const { songs } = storeToRefs(songsStore)
 const showTaskHours = ref(false)
 
 // 获取计时记录
@@ -187,6 +204,56 @@ const sortedTimerRecords = computed(() => {
   })
 })
 
+// 获取歌曲在列表中的索引
+const songIndex = computed(() => {
+  if (!props.song) return -1
+  return songs.value.findIndex(s => s.id === props.song.id)
+})
+
+// 计算推断的开始日期和来源
+const inferredStartDate = computed(() => {
+  // 只在编辑模式下显示推断日期
+  if (!props.song) return null
+  
+  // 如果表单中已经设置了 startDate，不显示推断日期
+  if (formData.value.startDate) return null
+  
+  // 如果歌曲有手动设置的 startDate，不显示推断日期
+  if (props.song.startDate) return null
+  
+  // 使用 getSongStartDate 函数推断
+  const inferred = getSongStartDate(props.song, projectStartDate.value, songIndex.value)
+  return inferred
+})
+
+// 推断日期的来源说明
+const inferredDateSource = computed(() => {
+  if (!props.song || !inferredStartDate.value) return ''
+  
+  // 优先级1：计时记录
+  if (props.song.timerRecords && Array.isArray(props.song.timerRecords) && props.song.timerRecords.length > 0) {
+    return '最早的计时记录'
+  }
+  
+  // 优先级2：创建日期
+  if (props.song.createdAt) {
+    return '创建日期'
+  }
+  
+  // 优先级3：默认计算
+  return '默认计算'
+})
+
+// 格式化推断日期显示
+function formatInferredDate(date) {
+  if (!date) return ''
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const formData = ref({
   name: '',
   genre: '',
@@ -197,6 +264,7 @@ const formData = ref({
   tasks: new Array(TASKS.length).fill(false),
   taskHours: calculateTaskHours(40, false),
   timeSpent: 0,
+  startDate: '',
   notes: ''
 })
 
@@ -253,6 +321,15 @@ watch(() => props.song, (song) => {
     }
     const calculatedStage = getStageFromLastCompletedTask(tempSong)
     
+    // 处理开始制作时间：如果有 startDate，转换为 YYYY-MM-DD 格式
+    let startDateValue = ''
+    if (song.startDate) {
+      const date = new Date(song.startDate)
+      if (!isNaN(date.getTime())) {
+        startDateValue = date.toISOString().split('T')[0]
+      }
+    }
+    
     formData.value = {
       name: song.name,
       genre: song.genre || '',
@@ -263,6 +340,7 @@ watch(() => props.song, (song) => {
       tasks: tasks,
       taskHours: taskHours,
       timeSpent: song.timeSpent || 0,
+      startDate: startDateValue,
       notes: song.notes || ''
     }
     // 如果有自定义的任务时长，显示任务时长区域
@@ -281,6 +359,7 @@ watch(() => props.song, (song) => {
       tasks: new Array(TASKS.length).fill(false),
       taskHours: calculateTaskHours(40, false),
       timeSpent: 0,
+      startDate: '',
       notes: ''
     }
     showTaskHours.value = false
