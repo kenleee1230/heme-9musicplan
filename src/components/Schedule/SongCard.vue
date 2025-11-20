@@ -1,7 +1,19 @@
 <template>
   <div class="song-card">
     <div class="song-header">
-      <div class="song-title">{{ song.name }}</div>
+      <div class="song-title-section">
+        <div class="song-title">{{ song.name }}</div>
+        <!-- 开始制作时间提醒 -->
+        <div 
+          v-if="!hasStartDate" 
+          class="start-date-reminder"
+          @click="$emit('edit', song)"
+          title="点击设置开始制作时间"
+        >
+          <span class="reminder-icon">📅</span>
+          <span class="reminder-text">未设置开始制作时间，点击设置</span>
+        </div>
+      </div>
       <div class="song-stage">
         当前阶段：{{ song.currentStage }}
       </div>
@@ -162,6 +174,31 @@ const totalTasks = computed(() => {
 
 const hasTimerRecords = computed(() => {
   return props.song.timerRecords && props.song.timerRecords.length > 0
+})
+
+// 判断歌曲是否手动设置了开始制作时间
+const hasStartDate = computed(() => {
+  const startDate = props.song.startDate
+  if (!startDate || typeof startDate !== 'string' || startDate.trim() === '') {
+    return false
+  }
+  
+  // 检查是否为有效的日期格式（YYYY-MM-DD 或其他可解析格式）
+  const dateStr = startDate.trim()
+  let parsedDate = null
+  
+  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    // YYYY-MM-DD 格式
+    const [year, month, day] = dateStr.split('-').map(Number)
+    parsedDate = new Date(year, month - 1, day)
+    parsedDate.setHours(0, 0, 0, 0)
+  } else {
+    // 其他格式，尝试直接解析
+    parsedDate = new Date(dateStr)
+    parsedDate.setHours(0, 0, 0, 0)
+  }
+  
+  return !isNaN(parsedDate.getTime())
 })
 
 // 获取计时记录（从 store 获取最新数据）

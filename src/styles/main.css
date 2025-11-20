@@ -189,14 +189,44 @@ section {
 .song-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 15px;
+}
+
+.song-title-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .song-title {
     font-size: 1.3em;
     font-weight: bold;
     color: #333;
+}
+
+.start-date-reminder {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8em;
+    color: #ff9800;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    width: fit-content;
+}
+
+.start-date-reminder:hover {
+    color: #f57c00;
+}
+
+.reminder-icon {
+    font-size: 0.85em;
+}
+
+.reminder-text {
+    font-weight: normal;
 }
 
 .song-stage {

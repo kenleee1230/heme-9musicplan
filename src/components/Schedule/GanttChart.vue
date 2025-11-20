@@ -31,18 +31,23 @@
       
       <!-- 右侧时间轴和进度条 -->
       <div class="gantt-main">
-        <!-- 时间轴表头 -->
-        <div class="gantt-timeline-header">
-          <div
-            v-for="(date, index) in dates"
-            :key="index"
-            :class="['gantt-day-cell', { 
-              'is-today': isToday(date),
-              'is-start': isStartDate(date)
-            }]"
-          >
-            <div class="gantt-day-label">
-              {{ date.getDate() }}
+        <!-- 时间轴表头容器 -->
+        <div class="gantt-timeline-header-wrapper">
+          <!-- 时间轴表头 -->
+          <div class="gantt-timeline-header">
+            <!-- 移动端：左侧占位 -->
+            <div class="gantt-header-spacer-mobile"></div>
+            <div
+              v-for="(date, index) in dates"
+              :key="index"
+              :class="['gantt-day-cell', { 
+                'is-today': isToday(date),
+                'is-start': isStartDate(date)
+              }]"
+            >
+              <div class="gantt-day-label">
+                {{ date.getDate() }}
+              </div>
             </div>
           </div>
         </div>
@@ -53,18 +58,33 @@
           :key="song.id"
           class="gantt-row"
         >
-          <div
-            v-for="(date, dayIndex) in dates"
-            :key="dayIndex"
-            class="gantt-day-cell"
-          >
-            <!-- 如果这一天在歌曲的时间范围内，显示进度条 -->
+          <!-- 移动端：行内歌曲标签 -->
+          <div class="gantt-row-label-mobile">
+            <div class="gantt-row-song-name-mobile">
+              {{ song.name || `歌曲 ${index + 1}` }}
+              <span v-if="song.isNewGenre" class="new-genre-badge-mobile">新</span>
+              <span v-if="getSongDelayStatus(song, index) === 'at-risk'" class="delay-badge-mobile at-risk">⚠️</span>
+              <span v-if="getSongDelayStatus(song, index) === 'delayed'" class="delay-badge-mobile delayed">⏰</span>
+            </div>
+            <div class="gantt-row-song-info-mobile">
+              {{ getProgress(song).toFixed(0) }}% | {{ (song.timeSpent || 0).toFixed(1) }}h
+            </div>
+          </div>
+          
+          <div class="gantt-row-timeline">
             <div
-              v-if="isSongActiveOnDay(song, date, index)"
-              class="gantt-bar-segment"
-              :class="{ 'is-completed': song.currentStage === '已完成' }"
-              :style="getSegmentStyle(song, date, index)"
-            ></div>
+              v-for="(date, dayIndex) in dates"
+              :key="dayIndex"
+              class="gantt-day-cell"
+            >
+              <!-- 如果这一天在歌曲的时间范围内，显示进度条 -->
+              <div
+                v-if="isSongActiveOnDay(song, date, index)"
+                class="gantt-bar-segment"
+                :class="{ 'is-completed': song.currentStage === '已完成' }"
+                :style="getSegmentStyle(song, date, index)"
+              ></div>
+            </div>
           </div>
         </div>
       </div>
@@ -269,8 +289,19 @@ function getSegmentStyle(song, date, index) {
   -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
 }
 
+.gantt-chart * {
+  box-sizing: border-box;
+}
+
+/* 确保 sidebar 和 main 的行完全对齐 */
+.gantt-sidebar,
+.gantt-main {
+  vertical-align: top;
+}
+
 .gantt-container {
   display: flex;
+  align-items: flex-start;
 }
 
 .gantt-sidebar {
@@ -278,23 +309,73 @@ function getSegmentStyle(song, date, index) {
   width: 220px;
   border-right: 2px solid #1a1a1a;
   background: #fafafa;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.gantt-main {
+  flex: 1;
+  overflow-x: auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 连续的黑条，覆盖整个滚动区域 */
+/* 位置需要与 sidebar header spacer 的 border-bottom 对齐 */
+/* sidebar: height 60px + border-bottom 2px (box-sizing: border-box) = border 在 58px-60px */
+.gantt-main::before {
+  content: '';
+  position: absolute;
+  top: 58px; /* 与 sidebar border-bottom 对齐 */
+  left: 0;
+  /* 180天 × 40px = 7200px，加上一些余量 */
+  width: 8000px;
+  min-width: 100%;
+  height: 2px;
+  background: #1a1a1a;
+  z-index: 16;
+  pointer-events: none;
+}
+
+.gantt-timeline-header-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  background: white;
+  overflow: visible;
+  height: 60px;
+  min-height: 60px;
 }
 
 .gantt-header-spacer {
   height: 60px;
+  line-height: 60px;
   background: #fafafa;
+  border: none;
   border-bottom: 2px solid #1a1a1a;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .gantt-song-label {
   padding: 12px;
   height: 80px;
+  line-height: 1;
   background: #fafafa;
+  border: none;
   border-bottom: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   overflow: hidden;
+  flex-shrink: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 .gantt-song-name {
@@ -360,21 +441,18 @@ function getSegmentStyle(song, date, index) {
   text-overflow: ellipsis;
 }
 
-.gantt-main {
-  flex: 1;
-  overflow-x: auto;
-}
-
 .gantt-timeline-header {
   display: inline-flex;
   height: 60px;
+  line-height: 60px;
   background: white;
-  border-bottom: 2px solid #1a1a1a;
-  position: sticky;
-  top: 0;
-  z-index: 15;
+  border: none;
   align-items: center;
   min-width: 100%;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .gantt-day-cell {
@@ -407,11 +485,32 @@ function getSegmentStyle(song, date, index) {
 }
 
 .gantt-row {
-  display: inline-flex;
+  display: flex;
   height: 80px;
+  line-height: 1;
+  border: none;
   border-bottom: 1px solid #e0e0e0;
-  align-items: center;
+  align-items: stretch;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 移动端行内标签（默认隐藏） */
+.gantt-row-label-mobile {
+  display: none;
+}
+
+.gantt-header-spacer-mobile {
+  display: none;
+}
+
+.gantt-row-timeline {
+  display: inline-flex;
   min-width: 100%;
+  align-items: center;
+  min-height: 100%;
 }
 
 .gantt-bar-segment {
@@ -458,42 +557,110 @@ function getSegmentStyle(song, date, index) {
     border-radius: 4px;
   }
   
+  /* 移动端隐藏左侧 sidebar */
   .gantt-sidebar {
-    width: 130px;
+    display: none;
   }
   
-  .gantt-header-spacer {
-    height: 50px;
+  /* 时间轴区域全宽显示 */
+  .gantt-main {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
   }
   
-  .gantt-song-label {
-    padding: 8px 6px;
-    height: 70px;
+  /* 显示行内歌曲标签 */
+  .gantt-row-label-mobile {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    width: 160px;
+    padding: 10px 12px;
+    background: #fafafa;
+    border-right: 2px solid #1a1a1a;
+    justify-content: flex-start;
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    height: 100%;
+    min-height: 70px;
   }
   
-  .gantt-song-name {
-    font-size: 0.75em;
-    margin-bottom: 3px;
-    gap: 3px;
+  .gantt-row-song-name-mobile {
+    font-weight: 600;
+    color: #1a1a1a;
+    font-size: 0.85em;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    flex-wrap: wrap;
+    line-height: 1.4;
+    word-break: break-word;
+    flex: 1;
   }
   
-  .gantt-song-info {
-    font-size: 0.65em;
-    margin-bottom: 1px;
+  .gantt-row-song-info-mobile {
+    font-size: 0.7em;
+    color: #666;
+    white-space: nowrap;
+    margin-top: auto;
+    padding-top: 4px;
   }
   
-  .gantt-song-stage {
-    font-size: 0.6em;
-  }
-  
-  .new-genre-badge,
-  .delay-badge {
-    font-size: 0.6em;
+  .new-genre-badge-mobile {
+    background: #1a1a1a;
+    color: white;
     padding: 1px 4px;
+    font-size: 0.65em;
+    font-weight: 600;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  
+  .delay-badge-mobile {
+    padding: 1px 4px;
+    font-size: 0.65em;
+    font-weight: 600;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  
+  .delay-badge-mobile.at-risk {
+    background: #FFF3E0;
+    color: #FF9800;
+    border: 1px solid #FF9800;
+  }
+  
+  .delay-badge-mobile.delayed {
+    background: #FFEBEE;
+    color: #F44336;
+    border: 1px solid #F44336;
+  }
+  
+  .gantt-row-timeline {
+    display: inline-flex;
+    min-width: 100%;
   }
   
   .gantt-timeline-header {
     height: 50px;
+    position: sticky;
+    top: 0;
+    z-index: 15;
+  }
+  
+  /* 表头左侧占位 */
+  .gantt-header-spacer-mobile {
+    display: block;
+    flex-shrink: 0;
+    width: 160px;
+    height: 100%;
+    background: white;
+    border-right: 2px solid #1a1a1a;
+    position: sticky;
+    left: 0;
+    z-index: 16;
   }
   
   .gantt-day-cell {
@@ -505,7 +672,13 @@ function getSegmentStyle(song, date, index) {
   }
   
   .gantt-row {
-    height: 70px;
+    height: auto;
+    min-height: 70px;
+    align-items: stretch;
+  }
+  
+  .gantt-row-label-mobile {
+    min-height: 70px;
   }
   
   .gantt-bar-segment {
@@ -515,36 +688,32 @@ function getSegmentStyle(song, date, index) {
 }
 
 @media (max-width: 480px) {
-  .gantt-sidebar {
-    width: 110px;
+  .gantt-row-label-mobile {
+    width: 140px;
+    padding: 8px 10px;
+    min-height: 65px;
   }
   
-  .gantt-song-label {
-    padding: 6px 4px;
-    height: 65px;
+  .gantt-row-song-name-mobile {
+    font-size: 0.8em;
+    margin-bottom: 6px;
+    line-height: 1.3;
   }
   
-  .gantt-song-name {
-    font-size: 0.7em;
-    margin-bottom: 2px;
+  .gantt-row-song-info-mobile {
+    font-size: 0.65em;
+    padding-top: 4px;
   }
   
-  .gantt-song-info {
+  .new-genre-badge-mobile,
+  .delay-badge-mobile {
     font-size: 0.6em;
-  }
-  
-  .gantt-song-stage {
-    font-size: 0.55em;
-  }
-  
-  .new-genre-badge,
-  .delay-badge {
-    font-size: 0.55em;
     padding: 1px 3px;
   }
   
-  .gantt-header-spacer {
-    height: 45px;
+  /* 表头占位也要调整 */
+  .gantt-header-spacer-mobile {
+    width: 140px;
   }
   
   .gantt-timeline-header {
@@ -560,7 +729,13 @@ function getSegmentStyle(song, date, index) {
   }
   
   .gantt-row {
-    height: 65px;
+    height: auto;
+    min-height: 65px;
+    align-items: stretch;
+  }
+  
+  .gantt-row-label-mobile {
+    min-height: 65px;
   }
   
   .gantt-bar-segment {
