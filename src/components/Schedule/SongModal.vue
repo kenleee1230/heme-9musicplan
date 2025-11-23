@@ -1,169 +1,175 @@
 <template>
   <div class="modal" style="display: flex">
     <div class="modal-content">
-      <span class="close" @click="$emit('close')">&times;</span>
-      <h2>{{ song ? '编辑歌曲' : '添加新歌' }}</h2>
+      <div class="modal-header">
+        <h2>{{ song ? '编辑歌曲' : '添加新歌' }}</h2>
+        <span class="close" @click="$emit('close')">&times;</span>
+      </div>
       
-      <form @submit.prevent="handleSave">
-        <div class="form-group">
-          <label>歌曲名称</label>
-          <input v-model="formData.name" type="text" required />
-        </div>
-        
-        <div class="form-group">
-          <label>子曲风</label>
-          <input v-model="formData.genre" type="text" placeholder="例如：Future Bass, Deep House" />
-          <small>建议：90%精力用于制作你当下正喜欢的曲风</small>
-        </div>
-        
-        <div class="form-group">
-          <label>预计有效时长（小时）</label>
-          <input v-model.number="formData.estimatedHours" type="number" min="20" max="60" step="1" @input="handleEstimatedHoursChange" />
-        </div>
-        
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input v-model="formData.isNewGenre" type="checkbox" @change="handleGenreChange" />
-            <span>是否为新曲风</span>
-          </label>
-          <small>新曲风需要至少一周前期准备</small>
-        </div>
-        
-        <div v-if="showTaskHours" class="form-group">
-          <label>
-            任务时长分配（小时）
-            <button type="button" class="btn btn-small" @click="recalculateTaskHours">重新计算</button>
-          </label>
-          <div class="task-hours-list">
-            <div v-for="(task, index) in formData.customTasks" :key="index" class="task-hour-item">
-              <label class="task-hour-label">{{ task }}</label>
-              <input 
-                v-model.number="formData.taskHours[index]" 
-                type="number" 
-                min="0" 
-                step="0.1" 
-                class="task-hour-input"
-                @input="handleTaskHourChange"
-              />
-            </div>
+      <div class="modal-body">
+        <form @submit.prevent="handleSave">
+          <div class="form-group">
+            <label>歌曲名称</label>
+            <input v-model="formData.name" type="text" required />
           </div>
-          <small>可以手动调整每个任务的时长，系统会自动重新计算总时长。</small>
-        </div>
-        
-        <div class="form-group">
-          <label>已用时长（小时）</label>
-          <input v-model.number="formData.timeSpent" type="number" min="0" step="0.1" @blur="formatTimeSpent" />
-        </div>
-        
-        <div class="form-group">
-          <label>开始制作时间</label>
-          <input v-model="formData.startDate" type="date" />
-          <small>设置这首歌的开始制作日期</small>
-          <div v-if="!formData.startDate && inferredStartDate" class="inferred-date-hint">
-            <small style="color: #666;">
-              系统推断的开始日期：{{ formatInferredDate(inferredStartDate) }} 
-              <span style="color: #999;">（基于{{ inferredDateSource }}）</span>
-            </small>
+          
+          <div class="form-group">
+            <label>子曲风</label>
+            <input v-model="formData.genre" type="text" placeholder="例如：Future Bass, Deep House" />
+            <small>建议：90%精力用于制作你当下正喜欢的曲风</small>
           </div>
-        </div>
-        
-        <div class="form-group">
-          <label>当前阶段</label>
-          <div class="current-stage-display">{{ formData.currentStage }}</div>
-          <!--<small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
-            根据已完成步骤的最后一项自动判断
-          </small>-->
-        </div>
-        
-        <div class="form-group">
-          <label>
-            步骤列表
-            <button type="button" class="btn btn-small" @click="addTask">+ 添加步骤</button>
-          </label>
-          <div class="custom-tasks-list">
-            <div v-for="(task, index) in formData.customTasks" :key="index" class="custom-task-item">
-              <div class="custom-task-controls">
-                <button 
-                  type="button" 
-                  class="btn btn-tiny" 
-                  @click="moveTaskUp(index)"
-                  :disabled="index === 0"
-                  title="上移"
-                >
-                  ↑
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-tiny" 
-                  @click="moveTaskDown(index)"
-                  :disabled="index === formData.customTasks.length - 1"
-                  title="下移"
-                >
-                  ↓
-                </button>
-                <button 
-                  type="button" 
-                  class="btn btn-tiny btn-delete" 
-                  @click="removeTask(index)"
-                  :disabled="formData.customTasks.length <= 1"
-                  title="删除"
-                >
-                  ×
-                </button>
+          
+          <div class="form-group">
+            <label>预计有效时长（小时）</label>
+            <input v-model.number="formData.estimatedHours" type="number" min="20" max="60" step="1" @input="handleEstimatedHoursChange" />
+          </div>
+          
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input v-model="formData.isNewGenre" type="checkbox" @change="handleGenreChange" />
+              <span>是否为新曲风</span>
+            </label>
+            <small>新曲风需要至少一周前期准备</small>
+          </div>
+          
+          <div v-if="showTaskHours" class="form-group">
+            <label>
+              任务时长分配（小时）
+              <button type="button" class="btn btn-small" @click="recalculateTaskHours">重新计算</button>
+            </label>
+            <div class="task-hours-list">
+              <div v-for="(task, index) in formData.customTasks" :key="index" class="task-hour-item">
+                <label class="task-hour-label">{{ task }}</label>
+                <input 
+                  v-model.number="formData.taskHours[index]" 
+                  type="number" 
+                  min="0" 
+                  step="0.1" 
+                  class="task-hour-input"
+                  @input="handleTaskHourChange"
+                />
               </div>
-              <input 
-                v-model="formData.customTasks[index]" 
-                type="text" 
-                class="custom-task-input"
-                @blur="syncArrays"
-                placeholder="步骤名称"
-              />
-              <label class="task-checkbox-label">
-                <input v-model="formData.tasks[index]" type="checkbox" />
-                <span>已完成</span>
-              </label>
+            </div>
+            <small>可以手动调整每个任务的时长，系统会自动重新计算总时长。</small>
+          </div>
+          
+          <div class="form-group">
+            <label>已用时长（小时）</label>
+            <input v-model.number="formData.timeSpent" type="number" min="0" step="0.1" @blur="formatTimeSpent" />
+          </div>
+          
+          <div class="form-group">
+            <label>开始制作时间</label>
+            <input v-model="formData.startDate" type="date" />
+            <small>设置这首歌的开始制作日期</small>
+            <div v-if="!formData.startDate && inferredStartDate" class="inferred-date-hint">
+              <small style="color: #666;">
+                系统推断的开始日期：{{ formatInferredDate(inferredStartDate) }} 
+                <span style="color: #999;">（基于{{ inferredDateSource }}）</span>
+              </small>
             </div>
           </div>
-          <small>可以添加、删除、编辑和调整步骤顺序。每个步骤对应一个任务进度复选框。</small>
-        </div>
-        
-        <div class="form-group">
-          <label>备注</label>
-          <textarea v-model="formData.notes" rows="3"></textarea>
-        </div>
-        
-        <!-- 计时记录展示区域（仅在编辑模式下显示） -->
-        <div v-if="song && timerRecords.length > 0" class="form-group">
-          <label>计时记录</label>
-          <div class="timer-records-list">
-            <div v-for="record in sortedTimerRecords" :key="record.id" class="timer-record-item">
-              <div class="timer-record-header">
-                <div class="timer-record-time">
-                  <span class="record-date">{{ formatRecordDate(record.createdAt) }}</span>
-                  <span class="record-separator">·</span>
-                  <span class="record-duration">{{ formatDuration(record.duration) }}</span>
+          
+          <div class="form-group">
+            <label>当前阶段</label>
+            <div class="current-stage-display">{{ formData.currentStage }}</div>
+            <!--<small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
+              根据已完成步骤的最后一项自动判断
+            </small>-->
+          </div>
+          
+          <div class="form-group">
+            <label>
+              步骤列表
+              <button type="button" class="btn btn-small" @click="addTask">+ 添加步骤</button>
+            </label>
+            <div class="custom-tasks-list">
+              <div v-for="(task, index) in formData.customTasks" :key="index" class="custom-task-item">
+                <div class="custom-task-controls">
+                  <button 
+                    type="button" 
+                    class="btn btn-tiny" 
+                    @click="moveTaskUp(index)"
+                    :disabled="index === 0"
+                    title="上移"
+                  >
+                    ↑
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-tiny" 
+                    @click="moveTaskDown(index)"
+                    :disabled="index === formData.customTasks.length - 1"
+                    title="下移"
+                  >
+                    ↓
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-tiny btn-delete" 
+                    @click="removeTask(index)"
+                    :disabled="formData.customTasks.length <= 1"
+                    title="删除"
+                  >
+                    ×
+                  </button>
                 </div>
-                <button 
-                  type="button" 
-                  class="btn btn-small btn-delete" 
-                  @click="deleteRecord(record.id)"
-                  title="删除记录"
-                >
-                  删除
-                </button>
+                <input 
+                  v-model="formData.customTasks[index]" 
+                  type="text" 
+                  class="custom-task-input"
+                  @blur="syncArrays"
+                  placeholder="步骤名称"
+                />
+                <label class="task-checkbox-label">
+                  <input v-model="formData.tasks[index]" type="checkbox" />
+                  <span>已完成</span>
+                </label>
               </div>
-              <div v-if="record.details" class="timer-record-details">
-                {{ record.details }}
+            </div>
+            <small>可以添加、删除、编辑和调整步骤顺序。每个步骤对应一个任务进度复选框。</small>
+          </div>
+          
+          <div class="form-group">
+            <label>备注</label>
+            <textarea v-model="formData.notes" rows="3"></textarea>
+          </div>
+          
+          <!-- 计时记录展示区域（仅在编辑模式下显示） -->
+          <div v-if="song && timerRecords.length > 0" class="form-group">
+            <label>计时记录</label>
+            <div class="timer-records-list">
+              <div v-for="record in sortedTimerRecords" :key="record.id" class="timer-record-item">
+                <div class="timer-record-header">
+                  <div class="timer-record-time">
+                    <span class="record-date">{{ formatRecordDate(record.createdAt) }}</span>
+                    <span class="record-separator">·</span>
+                    <span class="record-duration">{{ formatDuration(record.duration) }}</span>
+                  </div>
+                  <button 
+                    type="button" 
+                    class="btn btn-small btn-delete" 
+                    @click="deleteRecord(record.id)"
+                    title="删除记录"
+                  >
+                    删除
+                  </button>
+                </div>
+                <div v-if="record.details" class="timer-record-details">
+                  {{ record.details }}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        
+        </form>
+      </div>
+      
+      <div class="modal-footer">
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary">保存</button>
+          <button type="submit" class="btn btn-primary" @click="handleSave">保存</button>
           <button type="button" class="btn btn-secondary" @click="$emit('close')">取消</button>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </template>
