@@ -288,30 +288,10 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     console.log('[CloudSync] 上传新数据到云端...')
     await syncToCloud()
 
-    // 5. 删除云端旧数据（优化：避免每次都检查）
-    if (tracksStore.tracks.length > 0) {
-      console.log('[CloudSync] 删除云端旧数据...')
-      try {
-        const songsRef = collection(db, 'users', userId, 'songs')
-        const snapshot = await getDocs(songsRef)
-        
-        if (!snapshot.empty) {
-          const batch = writeBatch(db)
-          snapshot.forEach(doc => {
-            batch.delete(doc.ref)
-          })
-          await batch.commit()
-          console.log(`[CloudSync] 已删除 ${snapshot.size} 条旧数据`)
-        }
-        
-        // 设置迁移完成标记
-        localStorage.setItem('pattr_cloud_migrated', 'true')
-        console.log('[CloudSync] 迁移标记已设置')
-      } catch (error) {
-        console.error('[CloudSync] 删除旧数据失败:', error)
-        // 即使删除失败，也不影响迁移结果
-      }
-    }
+    // 5. 设置迁移完成标记（不删除云端旧数据，保留以防万一）
+    localStorage.setItem('pattr_cloud_migrated', 'true')
+    console.log('[CloudSync] 迁移标记已设置')
+    console.log('[CloudSync] ℹ️ 云端旧 songs 数据已保留，可手动删除')
 
     console.log('[CloudSync] ✅ 旧数据迁移完成')
   }

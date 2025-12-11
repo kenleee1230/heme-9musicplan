@@ -102,6 +102,9 @@
     
     <!-- 计时器 -->
     <Timer />
+    
+    <!-- 全局加载提示 -->
+    <Loading :isLoading="isLoading" />
   </div>
 </template>
 
@@ -135,6 +138,7 @@ import DailyPlanView from './components/Schedule/DailyPlanView.vue'
 import GanttChart from './components/Schedule/GanttChart.vue'
 import ChordReference from './components/Theory/ChordReference.vue'
 import ModalScales from './components/Theory/ModalScales.vue'
+import Loading from './components/Common/Loading.vue'
 
 // Stores
 import { useTimerSyncStore } from '@/stores/timerSync'
@@ -145,11 +149,13 @@ const workspacesStore = useWorkspacesStore()
 const projectsStore = useProjectsStore()
 const workflowsStore = useWorkflowsStore()
 const timerSyncStore = useTimerSyncStore()
+const cloudSyncStore = useCloudSyncStore()
 
 // 状态
 const { projectTracks: tracks } = storeToRefs(tracksStore)
 const { activeProject } = storeToRefs(projectsStore)
 const { activeWorkspace } = storeToRefs(workspacesStore)
+const { isSyncing: isCloudSyncing } = storeToRefs(cloudSyncStore)
 
 const activeTab = ref('schedule')
 const timelineView = ref('timeline')
@@ -159,9 +165,13 @@ const showRegisterModal = ref(false)
 const editingSong = ref(null)
 const showTimerRecordsModal = ref(false)
 const viewingSong = ref(null)
+const isAppLoading = ref(false)
 
 // 计算属性 - 向后兼容
 const songs = computed(() => tracks.value || [])
+
+// 计算属性 - 是否显示加载
+const isLoading = computed(() => isAppLoading.value || isCloudSyncing.value)
 
 // 初始化同步
 useSync()
@@ -216,9 +226,13 @@ function closeTimerRecordsModal() {
 onMounted(async () => {
   console.log('[App] ========== 应用启动 ==========')
   
-  // 步骤1: 初始化认证（检查用户是否已登录）
-  await authStore.initAuth()
-  console.log('[App] 认证状态:', authStore.isAuthenticated ? '已登录' : '未登录')
+  // 显示加载提示
+  isAppLoading.value = true
+  
+  try {
+    // 步骤1: 初始化认证（检查用户是否已登录）
+    await authStore.initAuth()
+    console.log('[App] 认证状态:', authStore.isAuthenticated ? '已登录' : '未登录')
   
   // 步骤2: 根据登录状态决定数据来源
   if (authStore.isAuthenticated) {
@@ -309,6 +323,11 @@ onMounted(async () => {
   // 如果已登录且有网络，处理同步队列
   if (authStore.isAuthenticated && navigator.onLine) {
     timerSyncStore.processSyncQueue()
+  }
+  } finally {
+    // 隐藏加载提示
+    isAppLoading.value = false
+    console.log('[App] 加载提示已隐藏')
   }
 })
 </script>

@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import { loadFromStorage, saveToStorage } from '@/utils/storage'
+import { useAuthStore } from './auth'
+import { useCloudSyncStore } from './cloudSync'
 
 const STORAGE_KEY = 'pattr_workspaces'
 const ACTIVE_WORKSPACE_KEY = 'pattr_active_workspace'
@@ -47,32 +49,20 @@ export const useWorkspacesStore = defineStore('workspaces', () => {
   function saveWorkspaces() {
     saveToStorage(STORAGE_KEY, workspaces.value)
     
-    // 如果用户已登录，同步到云端
-    syncToCloudIfAuthenticated()
+    // 自动同步到云端
+    const authStore = useAuthStore()
+    if (authStore.isAuthenticated && navigator.onLine) {
+      const cloudSyncStore = useCloudSyncStore()
+      // 异步同步，不阻塞UI
+      cloudSyncStore.syncWorkspacesToCloud(authStore.user.uid, workspaces.value).catch(err => {
+        console.error('[WorkspacesStore] 同步到云端失败:', err)
+      })
+    }
   }
 
   // 保存活跃工作区
   function saveActiveWorkspace() {
     saveToStorage(ACTIVE_WORKSPACE_KEY, activeWorkspaceId.value)
-  }
-  
-  // 同步到云端（如果已登录）
-  async function syncToCloudIfAuthenticated() {
-    try {
-      const { useAuthStore } = await import('./auth')
-      const { useCloudSyncStore } = await import('./cloudSync')
-      
-      const authStore = useAuthStore()
-      if (authStore.isAuthenticated && navigator.onLine) {
-        const cloudSyncStore = useCloudSyncStore()
-        // 异步同步，不阻塞UI
-        cloudSyncStore.syncWorkspacesToCloud(authStore.user.uid, workspaces.value).catch(err => {
-          console.error('[WorkspacesStore] 同步到云端失败:', err)
-        })
-      }
-    } catch (error) {
-      // 忽略导入错误
-    }
   }
 
   // 创建工作区
@@ -137,6 +127,15 @@ export const useWorkspacesStore = defineStore('workspaces', () => {
     setTimeout(() => {
       workspaces.value.splice(index, 1)
       saveWorkspaces()
+      
+      // 删除云端工作区（异步，不阻塞）
+      const authStore = useAuthStore()
+      if (authStore.isAuthenticated && navigator.onLine) {
+        const cloudSyncStore = useCloudSyncStore()
+        cloudSyncStore.deleteWorkspaceFromCloud(id).catch(err => {
+          console.error('[WorkspacesStore] 删除云端工作区失败:', err)
+        })
+      }
     }, 0)
 
     return true

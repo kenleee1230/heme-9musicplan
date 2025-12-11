@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { loadFromStorage, saveToStorage } from '@/utils/storage'
 import { useWorkspacesStore } from './workspaces'
 import { useTracksStore } from './tracks'
+import { useAuthStore } from './auth'
+import { useCloudSyncStore } from './cloudSync'
 
 const STORAGE_KEY = 'pattr_projects'
 const ACTIVE_PROJECT_KEY = 'pattr_active_project'
@@ -64,6 +66,16 @@ export const useProjectsStore = defineStore('projects', () => {
   // 保存项目到 localStorage
   function saveProjects() {
     saveToStorage(STORAGE_KEY, projects.value)
+    
+    // 自动同步到云端
+    const authStore = useAuthStore()
+    if (authStore.isAuthenticated && navigator.onLine) {
+      const cloudSyncStore = useCloudSyncStore()
+      // 异步同步，不阻塞UI
+      cloudSyncStore.syncProjectsToCloud(authStore.user.uid, projects.value).catch(err => {
+        console.error('[ProjectsStore] 同步到云端失败:', err)
+      })
+    }
   }
 
   // 保存活跃项目
@@ -154,6 +166,15 @@ export const useProjectsStore = defineStore('projects', () => {
       // 删除项目
       projects.value.splice(index, 1)
       saveProjects()
+      
+      // 删除云端项目（异步，不阻塞）
+      const authStore = useAuthStore()
+      if (authStore.isAuthenticated && navigator.onLine) {
+        const cloudSyncStore = useCloudSyncStore()
+        cloudSyncStore.deleteProjectFromCloud(id).catch(err => {
+          console.error('[ProjectsStore] 删除云端项目失败:', err)
+        })
+      }
     }, 0)
 
     return true
