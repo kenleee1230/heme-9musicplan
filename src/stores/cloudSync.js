@@ -197,6 +197,19 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     }
 
     if (projects.length > 0) {
+      // 修复项目的 workspaceId（如果不匹配）
+      const activeWorkspaceId = workspacesStore.activeWorkspaceId || (workspaces.length > 0 ? workspaces[0].id : null)
+      
+      projects.forEach(project => {
+        // 如果项目的 workspaceId 不存在或不匹配任何工作区，修复它
+        const workspaceExists = workspaces.find(w => w.id === project.workspaceId)
+        if (!workspaceExists && activeWorkspaceId) {
+          console.log(`[CloudSync] 修复项目 ${project.name} 的 workspaceId: ${project.workspaceId} → ${activeWorkspaceId}`)
+          project.workspaceId = activeWorkspaceId
+          project.updatedAt = new Date().toISOString()
+        }
+      })
+      
       projectsStore.projects = projects
       projectsStore.saveProjects()
       
@@ -220,6 +233,12 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
    */
   async function migrateOldDataToNew(userId) {
     console.log('[CloudSync] 开始迁移旧数据到新结构...')
+    
+    // 检查是否已经迁移过（避免重复操作）
+    if (localStorage.getItem('pattr_cloud_migrated') === 'true') {
+      console.log('[CloudSync] 已迁移过，跳过')
+      return
+    }
     
     // 1. 从云端加载旧数据
     const songsStore = useSongsStore()
@@ -268,6 +287,31 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     // 4. 上传新数据到云端
     console.log('[CloudSync] 上传新数据到云端...')
     await syncToCloud()
+
+    // 5. 删除云端旧数据（优化：避免每次都检查）
+    if (tracksStore.tracks.length > 0) {
+      console.log('[CloudSync] 删除云端旧数据...')
+      try {
+        const songsRef = collection(db, 'users', userId, 'songs')
+        const snapshot = await getDocs(songsRef)
+        
+        if (!snapshot.empty) {
+          const batch = writeBatch(db)
+          snapshot.forEach(doc => {
+            batch.delete(doc.ref)
+          })
+          await batch.commit()
+          console.log(`[CloudSync] 已删除 ${snapshot.size} 条旧数据`)
+        }
+        
+        // 设置迁移完成标记
+        localStorage.setItem('pattr_cloud_migrated', 'true')
+        console.log('[CloudSync] 迁移标记已设置')
+      } catch (error) {
+        console.error('[CloudSync] 删除旧数据失败:', error)
+        // 即使删除失败，也不影响迁移结果
+      }
+    }
 
     console.log('[CloudSync] ✅ 旧数据迁移完成')
   }

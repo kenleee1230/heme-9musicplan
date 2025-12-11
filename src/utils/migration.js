@@ -73,18 +73,16 @@ function migrateToV1() {
     return
   }
   
-  // 如果已有工作区和项目，使用现有的；否则创建新的
+  // 确保有工作区和项目
   let workspaceId, projectId, workspace, project
   
-  if (existingWorkspaces.length > 0 && existingProjects.length > 0) {
-    console.log('[Migration V1] Using existing workspace and project')
-    workspaceId = existingWorkspaces[0].id
-    projectId = existingProjects[0].id
+  // 1. 处理工作区
+  if (existingWorkspaces.length > 0) {
+    console.log('[Migration V1] Using existing workspace')
     workspace = existingWorkspaces[0]
-    project = existingProjects[0]
+    workspaceId = workspace.id
   } else {
-    console.log('[Migration V1] Creating new workspace and project')
-    // 创建默认工作区
+    console.log('[Migration V1] Creating new workspace')
     workspaceId = uuidv4()
     workspace = {
       id: workspaceId,
@@ -98,8 +96,17 @@ function migrateToV1() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
-    
-    // 创建默认项目
+    saveToStorage(PATTR_WORKSPACES_KEY, [workspace])
+    saveToStorage('pattr_active_workspace', workspaceId)
+  }
+  
+  // 2. 处理项目（独立判断）
+  if (existingProjects.length > 0) {
+    console.log('[Migration V1] Using existing project')
+    project = existingProjects[0]
+    projectId = project.id
+  } else {
+    console.log('[Migration V1] Creating new project')
     projectId = uuidv4()
     project = {
       id: projectId,
@@ -110,7 +117,7 @@ function migrateToV1() {
       description: '从旧版本迁移的项目',
       startDate: oldStartDate || new Date().toISOString(),
       deadline: calculateDeadline(oldStartDate, 180),
-      targetCount: 9,
+      targetCount: oldSongs.length || 9,
       settings: {
         dailyHours: oldTimeConfig.dailyMakingHours || 2,
         autoSchedule: true
@@ -120,19 +127,13 @@ function migrateToV1() {
         { id: uuidv4(), name: '完成第3首歌', targetDate: null, completed: false, description: '25%进度达成' },
         { id: uuidv4(), name: '完成第5首歌', targetDate: null, completed: false, description: '过半完成' },
         { id: uuidv4(), name: '完成第7首歌', targetDate: null, completed: false, description: '75%进度达成' },
-        { id: uuidv4(), name: '完成全部9首歌', targetDate: null, completed: false, description: '计划圆满完成' }
+        { id: uuidv4(), name: '完成全部歌曲', targetDate: null, completed: false, description: '计划圆满完成' }
       ],
       goals: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
-    
-    // 保存工作区和项目
-    saveToStorage(PATTR_WORKSPACES_KEY, [workspace])
     saveToStorage(PATTR_PROJECTS_KEY, [project])
-    
-    // 设置活跃工作区和项目
-    saveToStorage('pattr_active_workspace', workspaceId)
     saveToStorage('pattr_active_project', projectId)
   }
   
