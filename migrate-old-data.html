@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>迁移旧数据到新结构</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .step {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f9f9f9;
+      border-left: 4px solid #4CAF50;
+      border-radius: 4px;
+    }
+    .step h3 {
+      margin-top: 0;
+      color: #4CAF50;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .log {
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+    .log div {
+      margin: 5px 0;
+    }
+    .error {
+      color: #f44336;
+    }
+    .success {
+      color: #4CAF50;
+    }
+    .warning {
+      color: #ff9800;
+    }
+    .info {
+      color: #2196F3;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔄 迁移旧数据到新结构</h1>
+    
+    <div class="step">
+      <h3>步骤1: 粘贴旧数据</h3>
+      <p>将旧的 songs 数据（JSON 数组）粘贴到下面：</p>
+      <textarea id="oldDataInput" placeholder='[{"id":"xxx","name":"xxx",...}]'></textarea>
+    </div>
+
+    <div class="step">
+      <h3>步骤2: 执行迁移</h3>
+      <button id="migrateBtn" onclick="migrateData()">开始迁移</button>
+      <button onclick="clearLog()">清除日志</button>
+    </div>
+
+    <div class="step">
+      <h3>步骤3: 上传到云端</h3>
+      <p>迁移完成后，需要登录 Firebase 并上传数据</p>
+      <button id="uploadBtn" onclick="uploadToCloud()" disabled>上传到云端</button>
+    </div>
+
+    <div id="log" class="log"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js'
+    import { getAuth, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js'
+    import { getFirestore, collection, doc, setDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js'
+
+    // Firebase 配置
+    const firebaseConfig = {
+      apiKey: "AIzaSyCH5Ks-EsqVSYQW7r1OYYmGPbFGzFLOIQo",
+      authDomain: "musicplan-e5e3e.firebaseapp.com",
+      projectId: "musicplan-e5e3e",
+      storageBucket: "musicplan-e5e3e.firebasestorage.app",
+      messagingSenderId: "534820087734",
+      appId: "1:534820087734:web:e7e5f5a0e7e5f5a0e7e5f5"
+    }
+
+    const app = initializeApp(firebaseConfig)
+    const auth = getAuth(app)
+    const db = getFirestore(app)
+
+    window.firebaseApp = app
+    window.firebaseAuth = auth
+    window.firebaseDb = db
+
+    // 全局变量
+    window.migratedData = null
+
+    // 日志函数
+    window.log = function(message, type = 'info') {
+      const logDiv = document.getElementById('log')
+      const line = document.createElement('div')
+      line.className = type
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`
+      logDiv.appendChild(line)
+      logDiv.scrollTop = logDiv.scrollHeight
+    }
+
+    window.clearLog = function() {
+      document.getElementById('log').innerHTML = ''
+    }
+
+    // 迁移数据
+    window.migrateData = function() {
+      const input = document.getElementById('oldDataInput').value.trim()
+      
+      if (!input) {
+        log('❌ 请先粘贴旧数据', 'error')
+        return
+      }
+
+      try {
+        log('🔄 开始解析旧数据...', 'info')
+        const oldSongs = JSON.parse(input)
+        
+        if (!Array.isArray(oldSongs)) {
+          log('❌ 数据格式错误：必须是数组', 'error')
+          return
+        }
+
+        log(`✅ 解析成功，共 ${oldSongs.length} 首歌曲`, 'success')
+        
+        // 创建新数据结构
+        log('🔄 创建新数据结构...', 'info')
+        
+        // 1. 创建默认工作区
+        const workspaceId = 'migrated-workspace-' + Date.now()
+        const workspace = {
+          id: workspaceId,
+          name: '我的工作区',
+          description: '从旧数据迁移',
+          color: '#4CAF50',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          settings: {
+            timezone: 'Asia/Shanghai',
+            defaultDailyHours: 2
+          }
+        }
+        log(`✅ 创建工作区: ${workspace.name}`, 'success')
+
+        // 2. 创建默认项目
+        const projectId = 'migrated-project-' + Date.now()
+        const project = {
+          id: projectId,
+          workspaceId: workspaceId,
+          name: '180天音乐计划',
+          type: 'album',
+          templateId: 'beginner-180',
+          startDate: new Date().toISOString().split('T')[0],
+          deadline: null,
+          targetCount: oldSongs.length,
+          settings: {
+            dailyHours: 2,
+            autoSchedule: true
+          },
+          milestones: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+        log(`✅ 创建项目: ${project.name}`, 'success')
+
+        // 3. 迁移歌曲到作品
+        const tracks = []
+        oldSongs.forEach((song, index) => {
+          const track = {
+            id: song.id,
+            projectId: projectId,
+            name: song.name,
+            type: 'song',
+            workflowId: 'beginner-180-workflow',
+            customSteps: song.customTasks || [],
+            stepsCompleted: song.tasks || [],
+            startDate: song.startDate || null,
+            deadline: null,
+            estimatedHours: song.estimatedHours || 40,
+            timeSpent: song.timeSpent || 0,
+            taskHours: song.taskHours || [],
+            timerRecords: song.timerRecords || [],
+            metadata: {
+              genre: song.genre || '',
+              isNewGenre: song.isNewGenre || false,
+              notes: song.notes || '',
+              currentStage: song.currentStage || ''
+            },
+            createdAt: song.createdAt || new Date().toISOString(),
+            updatedAt: song.updatedAt || new Date().toISOString()
+          }
+          tracks.push(track)
+          log(`  ✅ 迁移歌曲 ${index + 1}/${oldSongs.length}: ${track.name}`, 'info')
+        })
+
+        // 保存迁移结果
+        window.migratedData = {
+          workspace,
+          project,
+          tracks
+        }
+
+        log('', 'info')
+        log('🎉 迁移完成！', 'success')
+        log(`  - 工作区: 1`, 'success')
+        log(`  - 项目: 1`, 'success')
+        log(`  - 作品: ${tracks.length}`, 'success')
+        log('', 'info')
+        log('⚠️  请先登录 Firebase，然后点击"上传到云端"按钮', 'warning')
+
+        // 启用上传按钮
+        document.getElementById('uploadBtn').disabled = false
+
+        // 保存到 localStorage（可选）
+        localStorage.setItem('pattr_workspaces', JSON.stringify([workspace]))
+        localStorage.setItem('pattr_projects', JSON.stringify([project]))
+        localStorage.setItem('pattr_tracks', JSON.stringify(tracks))
+        localStorage.setItem('pattr_active_workspace', workspaceId)
+        localStorage.setItem('pattr_active_project', projectId)
+        
+        log('✅ 数据已保存到本地存储', 'success')
+
+      } catch (error) {
+        log(`❌ 迁移失败: ${error.message}`, 'error')
+        console.error(error)
+      }
+    }
+
+    // 上传到云端
+    window.uploadToCloud = async function() {
+      if (!window.migratedData) {
+        log('❌ 没有可上传的数据，请先执行迁移', 'error')
+        return
+      }
+
+      try {
+        // 检查登录状态
+        const user = auth.currentUser
+        if (!user) {
+          log('❌ 请先登录 Firebase', 'error')
+          const email = prompt('请输入 Firebase 邮箱:')
+          const password = prompt('请输入密码:')
+          
+          if (!email || !password) {
+            log('❌ 登录取消', 'error')
+            return
+          }
+
+          log('🔄 正在登录...', 'info')
+          await signInWithEmailAndPassword(auth, email, password)
+          log('✅ 登录成功', 'success')
+        }
+
+        const userId = auth.currentUser.uid
+        log(`🔄 开始上传数据到云端 (用户ID: ${userId})...`, 'info')
+
+        const { workspace, project, tracks } = window.migratedData
+
+        // 1. 上传工作区
+        log('🔄 上传工作区...', 'info')
+        const workspaceRef = doc(db, 'users', userId, 'workspaces', workspace.id)
+        await setDoc(workspaceRef, workspace)
+        log('✅ 工作区上传成功', 'success')
+
+        // 2. 上传项目
+        log('🔄 上传项目...', 'info')
+        const projectRef = doc(db, 'users', userId, 'projects', project.id)
+        await setDoc(projectRef, project)
+        log('✅ 项目上传成功', 'success')
+
+        // 3. 批量上传作品
+        log(`🔄 上传 ${tracks.length} 个作品...`, 'info')
+        const batchSize = 500
+        for (let i = 0; i < tracks.length; i += batchSize) {
+          const batch = writeBatch(db)
+          const batchTracks = tracks.slice(i, i + batchSize)
+          
+          for (const track of batchTracks) {
+            const trackRef = doc(db, 'users', userId, 'tracks', track.id)
+            batch.set(trackRef, track)
+          }
+          
+          await batch.commit()
+          log(`  ✅ 已上传 ${Math.min(i + batchSize, tracks.length)}/${tracks.length} 个作品`, 'info')
+        }
+
+        log('', 'info')
+        log('🎉 上传完成！', 'success')
+        log('', 'info')
+        log('✅ 现在可以刷新应用页面，数据将从云端加载', 'success')
+
+      } catch (error) {
+        log(`❌ 上传失败: ${error.message}`, 'error')
+        console.error(error)
+      }
+    }
+
+    // 初始化
+    log('✅ 工具已就绪', 'success')
+    log('📝 请在上方文本框粘贴旧数据，然后点击"开始迁移"', 'info')
+  </script>
+</body>
+</html>
+

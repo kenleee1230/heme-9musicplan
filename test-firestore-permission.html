@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firestore 权限测试工具</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+    .section h2 {
+      margin-top: 0;
+      color: #444;
+      font-size: 1.2em;
+    }
+    button {
+      background: #1a1a1a;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background: #333;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    .warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .status.online {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status.offline {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 Firestore 权限测试工具</h1>
+    <p class="subtitle">诊断和测试 Firebase Firestore 权限配置</p>
+
+    <!-- 认证状态 -->
+    <div class="section">
+      <h2>1️⃣ 认证状态</h2>
+      <button onclick="checkAuth()">检查认证状态</button>
+      <div id="authResult"></div>
+    </div>
+
+    <!-- 读取权限测试 -->
+    <div class="section">
+      <h2>2️⃣ 读取权限测试</h2>
+      <button onclick="testRead()">测试读取工作区</button>
+      <button onclick="testReadProjects()">测试读取项目</button>
+      <button onclick="testReadTracks()">测试读取作品</button>
+      <div id="readResult"></div>
+    </div>
+
+    <!-- 写入权限测试 -->
+    <div class="section">
+      <h2>3️⃣ 写入权限测试</h2>
+      <button onclick="testWrite()">测试写入工作区</button>
+      <button onclick="testWriteProject()">测试写入项目</button>
+      <button onclick="testWriteTrack()">测试写入作品</button>
+      <div id="writeResult"></div>
+    </div>
+
+    <!-- 规则验证 -->
+    <div class="section">
+      <h2>4️⃣ 规则验证</h2>
+      <button onclick="validateRules()">验证规则配置</button>
+      <div id="rulesResult"></div>
+    </div>
+
+    <!-- 修复建议 -->
+    <div class="section">
+      <h2>5️⃣ 修复建议</h2>
+      <div id="suggestions" class="result info">
+        <strong>如果遇到权限错误，请按以下步骤操作：</strong>
+
+        <strong>步骤 1: 检查 Firebase Console</strong>
+        1. 访问 https://console.firebase.google.com/
+        2. 选择你的项目
+        3. 进入 Firestore Database → 规则 标签
+        4. 确认规则已发布且包含以下内容：
+
+        <code>match /users/{userId}/workspaces/{workspaceId} {
+  allow read, write: if request.auth != null && request.auth.uid == userId;
+}</code>
+
+        <strong>步骤 2: 部署规则</strong>
+        在项目根目录运行：
+        <code>firebase deploy --only firestore:rules</code>
+
+        <strong>步骤 3: 清除缓存</strong>
+        1. 清除浏览器缓存
+        2. 退出登录并重新登录
+        3. 刷新页面
+
+        <strong>步骤 4: 验证修复</strong>
+        点击上方的测试按钮验证权限是否正常
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js'
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js'
+    import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js'
+
+    // 从 localStorage 读取 Firebase 配置
+    const firebaseConfig = {
+      apiKey: localStorage.getItem('firebase_api_key') || prompt('请输入 Firebase API Key:'),
+      authDomain: localStorage.getItem('firebase_auth_domain') || prompt('请输入 Firebase Auth Domain:'),
+      projectId: localStorage.getItem('firebase_project_id') || prompt('请输入 Firebase Project ID:'),
+      storageBucket: localStorage.getItem('firebase_storage_bucket') || prompt('请输入 Firebase Storage Bucket:'),
+      messagingSenderId: localStorage.getItem('firebase_messaging_sender_id') || prompt('请输入 Firebase Messaging Sender ID:'),
+      appId: localStorage.getItem('firebase_app_id') || prompt('请输入 Firebase App ID:')
+    }
+
+    // 保存配置
+    Object.keys(firebaseConfig).forEach(key => {
+      localStorage.setItem(`firebase_${key.replace(/([A-Z])/g, '_$1').toLowerCase()}`, firebaseConfig[key])
+    })
+
+    const app = initializeApp(firebaseConfig)
+    const auth = getAuth(app)
+    const db = getFirestore(app)
+
+    window.auth = auth
+    window.db = db
+
+    // 监听认证状态
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log('用户已登录:', user.uid)
+      } else {
+        console.log('用户未登录')
+      }
+    })
+
+    // 检查认证状态
+    window.checkAuth = async () => {
+      const resultDiv = document.getElementById('authResult')
+      const user = auth.currentUser
+
+      if (user) {
+        resultDiv.innerHTML = `
+          <div class="result success">
+            ✅ 用户已登录
+            
+            用户ID: ${user.uid}
+            邮箱: ${user.email || '未设置'}
+            显示名称: ${user.displayName || '未设置'}
+            认证提供商: ${user.providerData.map(p => p.providerId).join(', ')}
+            创建时间: ${new Date(user.metadata.creationTime).toLocaleString('zh-CN')}
+            最后登录: ${new Date(user.metadata.lastSignInTime).toLocaleString('zh-CN')}
+          </div>
+        `
+      } else {
+        resultDiv.innerHTML = `
+          <div class="result error">
+            ❌ 用户未登录
+            
+            请先在应用中登录，然后刷新此页面。
+          </div>
+        `
+      }
+    }
+
+    // 测试读取工作区
+    window.testRead = async () => {
+      const resultDiv = document.getElementById('readResult')
+      const user = auth.currentUser
+
+      if (!user) {
+        resultDiv.innerHTML = '<div class="result error">❌ 请先登录</div>'
+        return
+      }
+
+      try {
+        resultDiv.innerHTML = '<div class="result info">⏳ 正在测试读取权限...</div>'
+        
+        const workspacesRef = collection(db, 'users', user.uid, 'workspaces')
+        const snapshot = await getDocs(workspacesRef)
+        
+        resultDiv.innerHTML = `
+          <div class="result success">
+            ✅ 读取工作区成功！
+            
+            找到 ${snapshot.size} 个工作区
+            ${snapshot.size > 0 ? '\n工作区列表:\n' + snapshot.docs.map(doc => `- ${doc.id}: ${doc.data().name}`).join('\n') : ''}
+          </div>
+        `
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="result error">
+            ❌ 读取工作区失败
+            
+            错误代码: ${error.code}
+            错误信息: ${error.message}
+            
+            可能原因:
+            1. Firestore 规则未正确配置
+            2. 规则未部署到 Firebase
+            3. 用户 ID 不匹配
+          </div>
+        `
+      }
+    }
+
+    // 测试读取项目
+    window.testReadProjects = async () => {
+      const resultDiv = document.getElementById('readResult')
+      const user = auth.currentUser
+
+      if (!user) {
+        resultDiv.innerHTML = '<div class="result error">❌ 请先登录</div>'
+        return
+      }
+
+      try {
+        resultDiv.innerHTML = '<div class="result info">⏳ 正在测试读取项目...</div>'
+        
+        const projectsRef = collection(db, 'users', user.uid, 'projects')
+        const snapshot = await getDocs(projectsRef)
+        
+        resultDiv.innerHTML = `
+          <div class="result success">
+            ✅ 读取项目成功！
+            
+            找到 ${snapshot.size} 个项目
+            ${snapshot.size > 0 ? '\n项目列表:\n' + snapshot.docs.map(doc => `- ${doc.id}: ${doc.data().name}`).join('\n') : ''}
+          </div>
+        `
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="result error">
+            ❌ 读取项目失败
+            
+            错误代码: ${error.code}
+            错误信息: ${error.message}
+          </div>
+        `
+      }
+    }
+
+    // 测试读取作品
+    window.testReadTracks = async () => {
+      const resultDiv = document.getElementById('readResult')
+      const user = auth.currentUser
+
+      if (!user) {
+        resultDiv.innerHTML = '<div class="result error">❌ 请先登录</div>'
+        return
+      }
+
+      try {
+        resultDiv.innerHTML = '<div class="result info">⏳ 正在测试读取作品...</div>'
+        
+        const tracksRef = collection(db, 'users', user.uid, 'tracks')
+        const snapshot = await getDocs(tracksRef)
+        
+        resultDiv.innerHTML = `
+          <div class="result success">
+            ✅ 读取作品成功！
+            
+            找到 ${snapshot.size} 个作品
+            ${snapshot.size > 0 ? '\n作品列表:\n' + snapshot.docs.map(doc => `- ${doc.id}: ${doc.data().name}`).join('\n') : ''}
+          </div>
+        `
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="result error">
+            ❌ 读取作品失败
+            
+            错误代码: ${error.code}
+            错误信息: ${error.message}
+          </div>
+        `
+      }
+    }
+
+    // 测试写入工作区
+    window.testWrite = async () => {
+      const resultDiv = document.getElementById('writeResult')
+      const user = auth.currentUser
+
+      if (!user) {
+        resultDiv.innerHTML = '<div class="result error">❌ 请先登录</div>'
+        return
+      }
+
+      try {
+        resultDiv.innerHTML = '<div class="result info">⏳ 正在测试写入权限...</div>'
+        
+        const testId = 'test-workspace-' + Date.now()
+        const docRef = doc(db, 'users', user.uid, 'workspaces', testId)
+        
+        await setDoc(docRef, {
+          name: '测试工作区',
+          description: '这是一个测试工作区',
+          createdAt: new Date().toISOString(),
+          color: '#1a1a1a'
+        })
+        
+        // 验证写入
+        const docSnap = await getDoc(docRef)
+        
+        if (docSnap.exists()) {
+          // 清理测试数据
+          await deleteDoc(docRef)
+          
+          resultDiv.innerHTML = `
+            <div class="result success">
+              ✅ 写入工作区成功！
+              
+              测试文档 ID: ${testId}
+              写入的数据: ${JSON.stringify(docSnap.data(), null, 2)}
+              
+              ✅ 权限配置正确！
+            </div>
+          `
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="result error">
+            ❌ 写入工作区失败
+            
+            错误代码: ${error.code}
+            错误信息: ${error.message}
+            
+            <strong>这是最常见的错误！</strong>
+            
+            解决方案:
+            1. 打开 Firebase Console
+            2. 进入 Firestore Database → 规则
+            3. 确认规则包含:
+               match /users/{userId}/workspaces/{workspaceId} {
+                 allow read, write: if request.auth != null && request.auth.uid == userId;
+               }
+            4. 点击"发布"按钮
+            5. 等待几秒后重试
+          </div>
+        `
+      }
+    }
+
+    // 测试写入项目
+    window.testWriteProject = async () => {
+      const resultDiv = document.getElementById('writeResult')
+      const user = auth.currentUser
+
+      if (!user) {
+        resultDiv.innerHTML = '<div class="result error">❌ 请先登录</div>'
+        return
+      }
+
+      try {
+        resultDiv.innerHTML = '<div class="result info">⏳ 正在测试写入项目...</div>'
+        
+        const testId = 'test-project-' + Date.now()
+        const docRef = doc(db, 'users', user.uid, 'projects', testId)
+        
+        await setDoc(docRef, {
+          name: '测试项目',
+          workspaceId: 'test-workspace',
+          createdAt: new Date().toISOString()
+        })
+        
+        await deleteDoc(docRef)
+        
+        resultDiv.innerHTML = `
+          <div class="result success">
+            ✅ 写入项目成功！权限配置正确！
+          </div>
+        `
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="result error">
+            ❌ 写入项目失败
+            
+            错误代码: ${error.code}
+            错误信息: ${error.message}
+          </div>
+        `
+      }
+    }
+
+    // 测试写入作品
+    window.testWriteTrack = async () => {
+      const resultDiv = document.getElementById('writeResult')
+      const user = auth.currentUser
+
+      if (!user) {
+        resultDiv.innerHTML = '<div class="result error">❌ 请先登录</div>'
+        return
+      }
+
+      try {
+        resultDiv.innerHTML = '<div class="result info">⏳ 正在测试写入作品...</div>'
+        
+        const testId = 'test-track-' + Date.now()
+        const docRef = doc(db, 'users', user.uid, 'tracks', testId)
+        
+        await setDoc(docRef, {
+          name: '测试作品',
+          projectId: 'test-project',
+          createdAt: new Date().toISOString()
+        })
+        
+        await deleteDoc(docRef)
+        
+        resultDiv.innerHTML = `
+          <div class="result success">
+            ✅ 写入作品成功！权限配置正确！
+          </div>
+        `
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="result error">
+            ❌ 写入作品失败
+            
+            错误代码: ${error.code}
+            错误信息: ${error.message}
+          </div>
+        `
+      }
+    }
+
+    // 验证规则配置
+    window.validateRules = async () => {
+      const resultDiv = document.getElementById('rulesResult')
+      const user = auth.currentUser
+
+      if (!user) {
+        resultDiv.innerHTML = '<div class="result error">❌ 请先登录</div>'
+        return
+      }
+
+      resultDiv.innerHTML = '<div class="result info">⏳ 正在验证规则配置...</div>'
+
+      const tests = [
+        { name: '工作区读取', fn: testRead },
+        { name: '项目读取', fn: testReadProjects },
+        { name: '作品读取', fn: testReadTracks },
+        { name: '工作区写入', fn: testWrite },
+        { name: '项目写入', fn: testWriteProject },
+        { name: '作品写入', fn: testWriteTrack }
+      ]
+
+      let passed = 0
+      let failed = 0
+      const results = []
+
+      for (const test of tests) {
+        try {
+          await test.fn()
+          passed++
+          results.push(`✅ ${test.name}`)
+        } catch (error) {
+          failed++
+          results.push(`❌ ${test.name}: ${error.message}`)
+        }
+      }
+
+      const resultClass = failed === 0 ? 'success' : failed === tests.length ? 'error' : 'warning'
+      
+      resultDiv.innerHTML = `
+        <div class="result ${resultClass}">
+          <strong>验证完成</strong>
+          
+          通过: ${passed}/${tests.length}
+          失败: ${failed}/${tests.length}
+          
+          ${results.join('\n')}
+          
+          ${failed > 0 ? '\n⚠️ 请按照"修复建议"部分的步骤操作' : '\n🎉 所有测试通过！权限配置正确！'}
+        </div>
+      `
+    }
+
+    // 页面加载时自动检查认证状态
+    setTimeout(checkAuth, 500)
+  </script>
+</body>
+</html>
+

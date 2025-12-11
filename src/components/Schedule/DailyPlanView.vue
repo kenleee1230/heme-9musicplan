@@ -1,11 +1,15 @@
 <template>
   <div class="daily-plan-view">
-    <div v-if="songs.length === 0" class="empty-state">
-      <p>还没有添加歌曲，点击上方按钮添加第一首歌吧！</p>
+    <div v-if="!hasProject" class="empty-state">
+      <p>请先选择或创建一个项目</p>
+    </div>
+    
+    <div v-else-if="songs.length === 0" class="empty-state">
+      <p>还没有添加作品，点击上方按钮添加第一个作品吧！</p>
     </div>
     
     <div v-else-if="dailyPlan.length === 0" class="empty-state">
-      <p>没有进行中的歌曲</p>
+      <p>没有进行中的作品</p>
     </div>
     
     <template v-else>
@@ -198,16 +202,21 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useSongsStore } from '@/stores/songs'
-import { useSettingsStore } from '@/stores/settings'
+import { useTracksStore } from '@/stores/tracks'
+import { useProjectsStore } from '@/stores/projects'
 import { generateDailyPlan } from '@/utils/calculations'
 import { formatDuration } from '@/utils/helpers'
 
-const songsStore = useSongsStore()
-const settingsStore = useSettingsStore()
+const tracksStore = useTracksStore()
+const projectsStore = useProjectsStore()
 
-const { songs } = storeToRefs(songsStore)
-const { startDate, dailyLearningHours, dailyMakingHours } = storeToRefs(settingsStore)
+const { projectTracks: songs } = storeToRefs(tracksStore)
+const { activeProject } = storeToRefs(projectsStore)
+
+const startDate = computed(() => activeProject.value?.startDate || null)
+const dailyMakingHours = computed(() => activeProject.value?.settings?.dailyHours || 2)
+const dailyLearningHours = computed(() => 0.5)
+const hasProject = computed(() => !!activeProject.value)
 
 const currentMonth = ref(new Date().getMonth())
 const currentYear = ref(new Date().getFullYear())

@@ -1,7 +1,11 @@
 <template>
   <div class="gantt-chart">
-    <div v-if="songs.length === 0" class="empty-state">
-      <p>还没有添加歌曲，点击上方按钮添加第一首歌吧！</p>
+    <div v-if="!hasProject" class="empty-state">
+      <p>请先选择或创建一个项目</p>
+    </div>
+    
+    <div v-else-if="songs.length === 0" class="empty-state">
+      <p>还没有添加作品，点击上方按钮添加第一个作品吧！</p>
     </div>
     
     <div v-else class="gantt-container">
@@ -95,16 +99,20 @@
 <script setup>
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useSongsStore } from '@/stores/songs'
-import { useSettingsStore } from '@/stores/settings'
-import { TOTAL_DAYS, RECOMMENDED_HOURS_PER_DAY } from '@/utils/constants'
+import { useTracksStore } from '@/stores/tracks'
+import { useProjectsStore } from '@/stores/projects'
+import { RECOMMENDED_HOURS_PER_DAY } from '@/utils/constants'
 import { calculateProgress, getSongStartDate } from '@/utils/calculations'
 
-const songsStore = useSongsStore()
-const settingsStore = useSettingsStore()
+const tracksStore = useTracksStore()
+const projectsStore = useProjectsStore()
 
-const { songs } = storeToRefs(songsStore)
-const { startDate, dailyMakingHours } = storeToRefs(settingsStore)
+const { projectTracks: songs } = storeToRefs(tracksStore)
+const { activeProject } = storeToRefs(projectsStore)
+
+const startDate = computed(() => activeProject.value?.startDate || null)
+const deadline = computed(() => activeProject.value?.deadline || null)
+const dailyMakingHours = computed(() => activeProject.value?.settings?.dailyHours || 2)
 
 // 项目开始日期
 const projectStartDate = computed(() => {
@@ -116,11 +124,20 @@ const projectStartDate = computed(() => {
 
 // 项目结束日期
 const projectEndDate = computed(() => {
+  if (deadline.value) {
+    const end = new Date(deadline.value)
+    end.setHours(0, 0, 0, 0)
+    return end
+  }
+  // 如果没有截止日期，使用开始日期 + 180天
   const end = new Date(projectStartDate.value)
-  end.setDate(end.getDate() + TOTAL_DAYS)
+  end.setDate(end.getDate() + 180)
   end.setHours(0, 0, 0, 0)
   return end
 })
+
+// 检查是否有项目
+const hasProject = computed(() => !!activeProject.value)
 
 // 生成所有日期
 const dates = computed(() => {
@@ -164,7 +181,7 @@ function getProgress(song) {
 // 获取歌曲的开始和结束日期
 function getSongDateRange(song, index) {
   // 获取开始日期（使用智能推断）
-  const songStartDate = getSongStartDate(song, startDate.value, index)
+  const songStartDate = getSongStartDate(song, projectStartDate.value.toISOString(), index)
   
   if (!songStartDate || isNaN(songStartDate.getTime())) {
     return null

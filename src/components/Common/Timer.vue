@@ -198,21 +198,12 @@ async function saveRecord() {
 }
 
 function cancelRecord() {
-  // 取消时仍然保存记录，但不保存明细
-  if (pendingRecord.value) {
-    songsStore.addTimerRecord(pendingRecord.value.songId, {
-      startTime: pendingRecord.value.startTime,
-      endTime: pendingRecord.value.endTime,
-      duration: pendingRecord.value.hours,
-      details: ''
-    }).catch(err => {
-      console.error('保存计时记录失败:', err)
-    })
-  }
-  
+  // 取消时不保存记录，直接丢弃
+  // 修复：之前这里也会调用 addTimerRecord，导致可能重复保存
   showDetailsDialog.value = false
   pendingRecord.value = null
   timerDetails.value = ''
+  console.log('[Timer] 用户取消了计时记录')
 }
 </script>
 

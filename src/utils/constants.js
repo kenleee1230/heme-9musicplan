@@ -1,9 +1,17 @@
-// 存储键
+// 存储键 (保留旧键用于数据迁移)
 export const STORAGE_KEY = 'musicplan_songs'
 export const START_DATE_KEY = 'musicplan_start_date'
 export const TIME_CONFIG_KEY = 'musicplan_time_config'
 export const TIMER_STORAGE_KEY = 'musicplan_timer'
 export const SYNC_QUEUE_KEY = 'musicplan_sync_queue'
+
+// 新存储键
+export const PATTR_WORKSPACES_KEY = 'pattr_workspaces'
+export const PATTR_PROJECTS_KEY = 'pattr_projects'
+export const PATTR_TRACKS_KEY = 'pattr_tracks'
+export const PATTR_WORKFLOWS_KEY = 'pattr_workflows'
+export const PATTR_ACTIVE_WORKSPACE_KEY = 'pattr_active_workspace'
+export const PATTR_ACTIVE_PROJECT_KEY = 'pattr_active_project'
 
 // 项目配置
 export const TOTAL_DAYS = 180
@@ -148,3 +156,257 @@ export const KNOWLEDGE_BASE = [
   { title: "立体声制作", content: "合理使用立体声可以增加音乐的宽度和空间感。主要元素放中央，辅助元素分布两侧，创造立体感。" }
 ]
 
+// 工作流模板
+export const WORKFLOW_TEMPLATES = [
+  // 180天音乐计划专用（新手）
+  {
+    id: 'beginner-180-workflow',
+    name: '180天计划 - 新曲风完整流程',
+    description: '适合新手学习新曲风，包含完整的研究和审核流程',
+    isDefault: true,
+    isCustom: false,
+    applicableTypes: ['song', 'track'],
+    projectTypes: ['beginner-180'],
+    steps: [
+      { name: '新曲风前期准备（至少一周）：听10张专辑，搜索曲风介绍（BPM、配器音色、代表人物、经典曲目、最新曲目）', estimatedHours: 7, description: '深入研究新曲风' },
+      { name: '确定子曲风，找到3首参考歌，发给队长', estimatedHours: 2, description: '明确创作方向' },
+      { name: '制作Demo，自己觉得OK', estimatedHours: 8, description: '初步创作' },
+      { name: 'Demo发给队长，获取意见', estimatedHours: 1, description: '反馈与调整' },
+      { name: '完成编曲', estimatedHours: 12, description: '详细编曲制作' },
+      { name: '编曲发给队长，获取意见', estimatedHours: 1, description: '编曲审核' },
+      { name: '编曲OK，开始混音母带', estimatedHours: 6, description: '混音和母带处理' },
+      { name: '混音母带发给队长，获取意见', estimatedHours: 1, description: '混音审核' },
+      { name: '队长OK，发给校长', estimatedHours: 1, description: '最终审核' },
+      { name: '校长OK，完成制作', estimatedHours: 1, description: '项目完成' }
+    ]
+  },
+  
+  // 专业音乐人 - 自定义项目
+  {
+    id: 'professional-workflow',
+    name: '专业流程 - 熟悉曲风',
+    description: '适合有经验的音乐人，跳过前期研究，更高效的制作流程',
+    isDefault: true,
+    isCustom: false,
+    applicableTypes: ['song', 'track'],
+    projectTypes: ['professional-custom'],
+    steps: [
+      { name: '确定创作方向和参考', estimatedHours: 1.5, description: '快速定位风格' },
+      { name: '制作Demo', estimatedHours: 6, description: '初步创作' },
+      { name: 'Demo自审与调整', estimatedHours: 1, description: '自我评估' },
+      { name: '完成编曲', estimatedHours: 10, description: '详细编曲制作' },
+      { name: '编曲审核与修改', estimatedHours: 1.5, description: '编曲完善' },
+      { name: '混音母带', estimatedHours: 5, description: '混音和母带处理' },
+      { name: '最终审核与完成', estimatedHours: 1, description: '项目完成' }
+    ]
+  },
+  
+  // 单曲制作
+  {
+    id: 'single-production-workflow',
+    name: '单曲制作流程',
+    description: '适合精心打磨一首单曲，注重质量和细节',
+    isDefault: true,
+    isCustom: false,
+    applicableTypes: ['song', 'track'],
+    projectTypes: ['single-track'],
+    steps: [
+      { name: '概念和灵感开发', estimatedHours: 3, description: '确定歌曲主题和情绪' },
+      { name: '曲风研究和参考分析', estimatedHours: 4, description: '深入分析参考曲目' },
+      { name: '创作Demo（旋律+和声）', estimatedHours: 8, description: '核心音乐元素' },
+      { name: 'Demo审核和优化', estimatedHours: 2, description: '完善Demo' },
+      { name: '详细编曲制作', estimatedHours: 15, description: '精细编曲' },
+      { name: '编曲细节打磨', estimatedHours: 5, description: '音色和细节' },
+      { name: '初步混音', estimatedHours: 6, description: '平衡和EQ' },
+      { name: '混音细节处理', estimatedHours: 4, description: '效果和自动化' },
+      { name: '母带处理', estimatedHours: 2, description: '最终母带' },
+      { name: '多设备试听和调整', estimatedHours: 2, description: '确保各设备表现良好' },
+      { name: '最终审核和导出', estimatedHours: 1, description: '项目完成' }
+    ]
+  },
+  
+  // EP制作
+  {
+    id: 'ep-production-workflow',
+    name: 'EP制作流程',
+    description: '适合EP项目，平衡效率和质量，保持风格统一',
+    isDefault: true,
+    isCustom: false,
+    applicableTypes: ['song', 'track'],
+    projectTypes: ['ep-production'],
+    steps: [
+      { name: 'EP主题和风格定位', estimatedHours: 2, description: '确定整体方向' },
+      { name: '参考分析和规划', estimatedHours: 2, description: '分析参考和计划' },
+      { name: '创作Demo', estimatedHours: 6, description: '初步创作' },
+      { name: 'Demo审核', estimatedHours: 1, description: '确认方向' },
+      { name: '完成编曲', estimatedHours: 12, description: '详细编曲' },
+      { name: '编曲审核和调整', estimatedHours: 2, description: '确保风格统一' },
+      { name: '混音处理', estimatedHours: 6, description: '混音' },
+      { name: '母带处理', estimatedHours: 2, description: '母带' },
+      { name: '最终审核', estimatedHours: 1, description: '完成' }
+    ]
+  },
+  
+  // 专辑制作
+  {
+    id: 'album-production-workflow',
+    name: '专辑制作流程',
+    description: '适合专辑项目，注重整体性和专业度',
+    isDefault: true,
+    isCustom: false,
+    applicableTypes: ['song', 'track'],
+    projectTypes: ['album-production'],
+    steps: [
+      { name: '专辑概念和主题开发', estimatedHours: 3, description: '确定专辑整体概念' },
+      { name: '曲风和风格研究', estimatedHours: 3, description: '深入研究风格' },
+      { name: '创作Demo', estimatedHours: 6, description: '初步创作' },
+      { name: 'Demo审核和方向确认', estimatedHours: 1.5, description: '确认符合专辑主题' },
+      { name: '详细编曲制作', estimatedHours: 12, description: '精细编曲' },
+      { name: '编曲审核和风格统一', estimatedHours: 2, description: '确保专辑一致性' },
+      { name: '混音处理', estimatedHours: 6, description: '专业混音' },
+      { name: '母带处理', estimatedHours: 2, description: '统一母带标准' },
+      { name: '专辑整体审核', estimatedHours: 1.5, description: '确保专辑完整性' },
+      { name: '最终调整和导出', estimatedHours: 1, description: '项目完成' }
+    ]
+  },
+  
+  // 混音项目专用
+  {
+    id: 'mixing-project-workflow',
+    name: '混音项目流程',
+    description: '专注于混音和母带处理，适合接单或为他人混音',
+    isDefault: true,
+    isCustom: false,
+    applicableTypes: ['mix', 'mastering'],
+    projectTypes: ['mixing-project'],
+    steps: [
+      { name: '接收和整理素材', estimatedHours: 0.5, description: '检查音轨文件' },
+      { name: '分析原始音轨', estimatedHours: 1, description: '了解音乐内容和需求' },
+      { name: '音轨整理和分组', estimatedHours: 1, description: '组织工程文件' },
+      { name: '初步平衡和增益调整', estimatedHours: 2, description: '设置基础音量' },
+      { name: 'EQ处理', estimatedHours: 3, description: '频率平衡' },
+      { name: '压缩和动态处理', estimatedHours: 2.5, description: '控制动态' },
+      { name: '空间效果（混响、延迟）', estimatedHours: 2, description: '营造空间感' },
+      { name: '自动化和细节调整', estimatedHours: 2, description: '动态变化' },
+      { name: '母带处理', estimatedHours: 1.5, description: '最终母带' },
+      { name: '多设备试听和调整', estimatedHours: 1, description: '确保兼容性' },
+      { name: '导出和交付', estimatedHours: 0.5, description: '完成交付' }
+    ]
+  }
+]
+
+// 项目模板
+export const PROJECT_TEMPLATES = [
+  {
+    id: 'beginner-180',
+    name: '新手音乐人计划',
+    description: '180天内完成9首歌曲，适合刚结课的学员',
+    type: 'album',
+    defaultName: '180天音乐计划',
+    defaultDuration: 180,
+    defaultTargetCount: 9,
+    defaultDailyHours: 2,
+    autoSchedule: true,
+    defaultWorkflowId: 'beginner-180-workflow',
+    defaultMilestones: [
+      { name: '完成第1首歌', description: '迈出第一步' },
+      { name: '完成第3首歌', description: '25%进度达成' },
+      { name: '完成第5首歌', description: '过半完成' },
+      { name: '完成第7首歌', description: '75%进度达成' },
+      { name: '完成全部9首歌', description: '计划圆满完成' }
+    ],
+    icon: '🎓'
+  },
+  {
+    id: 'professional-custom',
+    name: '专业音乐人',
+    description: '自定义时间和目标，适合有经验的音乐人',
+    type: 'custom',
+    defaultName: '我的音乐项目',
+    defaultDuration: null,
+    defaultTargetCount: null,
+    defaultDailyHours: 3,
+    autoSchedule: false,
+    defaultWorkflowId: 'professional-workflow',
+    defaultMilestones: [],
+    icon: '🎹'
+  },
+  {
+    id: 'single-track',
+    name: '单曲制作',
+    description: '30-60天完成一首高质量单曲',
+    type: 'single',
+    defaultName: '单曲项目',
+    defaultDuration: 45,
+    defaultTargetCount: 1,
+    defaultDailyHours: 2,
+    autoSchedule: true,
+    defaultWorkflowId: 'single-production-workflow',
+    defaultMilestones: [
+      { name: 'Demo完成', description: '初步创作完成' },
+      { name: '编曲完成', description: '编曲定稿' },
+      { name: '混音完成', description: '混音定稿' },
+      { name: '母带完成', description: '作品完成' }
+    ],
+    icon: '🎵'
+  },
+  {
+    id: 'ep-production',
+    name: 'EP制作',
+    description: '3-6首歌的EP项目',
+    type: 'ep',
+    defaultName: 'EP项目',
+    defaultDuration: 90,
+    defaultTargetCount: 4,
+    defaultDailyHours: 2.5,
+    autoSchedule: true,
+    defaultWorkflowId: 'ep-production-workflow',
+    defaultMilestones: [
+      { name: '确定EP主题和风格', description: '统一风格定位' },
+      { name: '完成一半曲目', description: '进度过半' },
+      { name: '所有编曲完成', description: '编曲阶段结束' },
+      { name: 'EP完整混音', description: '统一混音标准' },
+      { name: 'EP发布准备', description: '项目完成' }
+    ],
+    icon: '💿'
+  },
+  {
+    id: 'album-production',
+    name: '专辑制作',
+    description: '8-12首歌的完整专辑',
+    type: 'album',
+    defaultName: '专辑项目',
+    defaultDuration: 180,
+    defaultTargetCount: 10,
+    defaultDailyHours: 3,
+    autoSchedule: true,
+    defaultWorkflowId: 'album-production-workflow',
+    defaultMilestones: [
+      { name: '专辑概念确定', description: '主题和风格定位' },
+      { name: '完成30%曲目', description: '初期进展' },
+      { name: '完成60%曲目', description: '进度过半' },
+      { name: '所有编曲完成', description: '编曲阶段结束' },
+      { name: '专辑统一混音', description: '整体音色统一' },
+      { name: '专辑发布准备', description: '项目完成' }
+    ],
+    icon: '💽'
+  },
+  {
+    id: 'mixing-project',
+    name: '混音项目',
+    description: '专注于混音和母带处理',
+    type: 'mixing',
+    defaultName: '混音项目',
+    defaultDuration: 30,
+    defaultTargetCount: 5,
+    defaultDailyHours: 2,
+    autoSchedule: true,
+    defaultWorkflowId: 'mixing-project-workflow',
+    defaultMilestones: [
+      { name: '完成一半混音', description: '进度过半' },
+      { name: '所有混音完成', description: '混音阶段结束' },
+      { name: '母带处理完成', description: '项目完成' }
+    ],
+    icon: '🎚️'
+  }
+]

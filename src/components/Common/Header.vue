@@ -1,133 +1,229 @@
 <template>
   <header>
-    <h1>let'sgetpattern</h1>
-    <p class="header-tagline">
-      To HEMe Records 未来制作人：<br/>
-      我们制作的是有其命运轨迹的东西，我们无法保证它「好运」，但我们可以保证它「是当下我能做到的最好」，且「品质越来越好」。它们的任何进步，源于我们自己的进步。
-    </p>
+    <div class="header-top">
+      <div class="header-brand">
+        <h1>Pattr</h1>
+        <p class="header-tagline">音乐创作项目管理<br>总之，不挥棒的话，什么都不会发生的。</p>
+      </div>
+      
+      <div class="header-navigation">
+        <WorkspaceSelector />
+        <ProjectSelector @createProject="showProjectModal = true" />
+      </div>
+      
+      <div class="header-actions">
+        <UserMenu @showLogin="$emit('showLogin')" />
+        <div class="data-management">
+          <button class="btn-link" @click="exportData" title="导出备份">💾</button>
+          <button class="btn-link" @click="importData" title="导入备份">📥</button>
+        </div>
+      </div>
+    </div>
     
-    <div class="header-stats">
+    <div v-if="activeProject" class="header-stats">
       <StatsCard label="剩余天数" :value="remainingDays" />
-      <StatsCard label="已完成" :value="completedCount" :sublabel="`/ ${TARGET_SONGS} 首`" />
+      <StatsCard label="已完成" :value="completedCount" :sublabel="targetLabel" />
       <StatsCard label="进行中" :value="inProgressCount" />
       <StatsCard label="总进度" :value="`${totalProgress}%`" />
     </div>
     
-    <div class="header-actions">
-      <button class="btn btn-secondary" @click="openStartDateModal">📅 设置开始日期</button>
-      <UserMenu @showLogin="$emit('showLogin')" />
-      <div class="data-management">
-        <button class="btn-link" @click="exportData" title="导出备份">💾</button>
-        <button class="btn-link" @click="importData" title="导入备份">📥</button>
-      </div>
+    <div v-if="activeProject" class="header-project-actions">
+      <button class="btn btn-secondary btn-small" @click="openProjectSettings">⚙️ 项目设置</button>
     </div>
     
-    <!-- 设置开始日期模态框 -->
-    <div v-if="showStartDateModal" class="modal" style="display: flex">
+    <!-- 项目设置模态框 -->
+    <div v-if="showProjectSettingsModal" class="modal" style="display: flex">
       <div class="modal-content">
-        <span class="close" @click="showStartDateModal = false">&times;</span>
-        <h2>设置开始日期</h2>
-        <form @submit.prevent="saveStartDate">
+        <span class="close" @click="showProjectSettingsModal = false">&times;</span>
+        <h2>项目设置</h2>
+        <form @submit.prevent="saveProjectSettings">
           <div class="form-group">
             <label>项目开始日期：</label>
-            <input v-model="startDateInput" type="date" required />
+            <input v-model="projectSettingsForm.startDate" type="date" required />
           </div>
           <div class="form-group">
-            <label>每日学习时长（小时）</label>
-            <input v-model.number="learningHoursInput" type="number" min="0" max="2" step="0.1" />
-            <small>用于听歌分析/学习技巧的时间（0-2小时）</small>
+            <label>截止日期（可选）：</label>
+            <input v-model="projectSettingsForm.deadline" type="date" />
           </div>
           <div class="form-group">
-            <label>每日制作时长（小时）</label>
-            <input v-model.number="makingHoursInput" type="number" min="0" max="6" step="0.1" />
-            <small>用于制作歌曲的时间（最大6小时）</small>
+            <label>每日工作时长（小时）</label>
+            <input v-model.number="projectSettingsForm.dailyHours" type="number" min="0.5" max="12" step="0.5" />
+            <small>用于制作的时间</small>
+          </div>
+          <div class="form-group">
+            <label>目标作品数（可选）</label>
+            <input v-model.number="projectSettingsForm.targetCount" type="number" min="1" />
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">保存</button>
-            <button type="button" class="btn btn-secondary" @click="showStartDateModal = false">取消</button>
+            <button type="button" class="btn btn-secondary" @click="showProjectSettingsModal = false">取消</button>
           </div>
         </form>
       </div>
     </div>
+    
+    <!-- 项目创建模态框 -->
+    <ProjectModal 
+      v-if="showProjectModal"
+      @close="showProjectModal = false"
+      @save="handleCreateProject"
+    />
   </header>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useSongsStore } from '@/stores/songs'
-import { useSettingsStore } from '@/stores/settings'
-import { TARGET_SONGS } from '@/utils/constants'
+import { useTracksStore } from '@/stores/tracks'
+import { useProjectsStore } from '@/stores/projects'
+import { useWorkspacesStore } from '@/stores/workspaces'
+import { useDataExport } from '@/composables/useDataExport'
 import StatsCard from './StatsCard.vue'
 import UserMenu from '../Auth/UserMenu.vue'
+import WorkspaceSelector from '../Workspace/WorkspaceSelector.vue'
+import ProjectSelector from '../Project/ProjectSelector.vue'
+import ProjectModal from '../Project/ProjectModal.vue'
 
 const emit = defineEmits(['showLogin'])
 
-const songsStore = useSongsStore()
-const settingsStore = useSettingsStore()
+const tracksStore = useTracksStore()
+const projectsStore = useProjectsStore()
+const workspacesStore = useWorkspacesStore()
+const { downloadExport, uploadImport } = useDataExport()
 
-const { completedCount, inProgressCount, totalProgress } = storeToRefs(songsStore)
-const { remainingDays, dailyLearningHours, dailyMakingHours, startDate } = storeToRefs(settingsStore)
+const { completedCount, inProgressCount, totalProgress } = storeToRefs(tracksStore)
+const { activeProject } = storeToRefs(projectsStore)
 
-const showStartDateModal = ref(false)
-const startDateInput = ref('')
-const learningHoursInput = ref(0.5)
-const makingHoursInput = ref(2)
+const showProjectSettingsModal = ref(false)
+const showProjectModal = ref(false)
+const projectSettingsForm = ref({
+  startDate: '',
+  deadline: '',
+  dailyHours: 2,
+  targetCount: null
+})
 
-function openStartDateModal() {
-  const date = startDate.value ? new Date(startDate.value) : new Date()
-  startDateInput.value = date.toISOString().split('T')[0]
-  learningHoursInput.value = dailyLearningHours.value
-  makingHoursInput.value = dailyMakingHours.value
-  showStartDateModal.value = true
+const remainingDays = computed(() => {
+  if (!activeProject.value?.deadline) return null
+  const deadline = new Date(activeProject.value.deadline)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const diff = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24))
+  return diff
+})
+
+const targetLabel = computed(() => {
+  if (activeProject.value?.targetCount) {
+    return `/ ${activeProject.value.targetCount} 首`
+  }
+  return ''
+})
+
+function openProjectSettings() {
+  if (!activeProject.value) return
+  
+  projectSettingsForm.value = {
+    startDate: activeProject.value.startDate ? new Date(activeProject.value.startDate).toISOString().split('T')[0] : '',
+    deadline: activeProject.value.deadline ? new Date(activeProject.value.deadline).toISOString().split('T')[0] : '',
+    dailyHours: activeProject.value.settings?.dailyHours || 2,
+    targetCount: activeProject.value.targetCount || null
+  }
+  showProjectSettingsModal.value = true
 }
 
-function saveStartDate() {
-  settingsStore.saveStartDate(startDateInput.value)
-  settingsStore.updateTimeConfig(learningHoursInput.value, makingHoursInput.value)
-  showStartDateModal.value = false
+function saveProjectSettings() {
+  if (!activeProject.value) return
+  
+  projectsStore.updateProject(activeProject.value.id, {
+    startDate: projectSettingsForm.value.startDate,
+    deadline: projectSettingsForm.value.deadline || null,
+    targetCount: projectSettingsForm.value.targetCount || null,
+    settings: {
+      ...activeProject.value.settings,
+      dailyHours: projectSettingsForm.value.dailyHours
+    }
+  })
+  
+  showProjectSettingsModal.value = false
+}
+
+function handleCreateProject(data) {
+  projectsStore.createProject(data)
+  showProjectModal.value = false
 }
 
 function exportData() {
-  const data = songsStore.exportData()
-  const blob = new Blob([data], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `musicplan-backup-${new Date().toISOString().split('T')[0]}.json`
-  a.click()
-  URL.revokeObjectURL(url)
+  downloadExport()
 }
 
 function importData() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'application/json'
-  input.onchange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const result = songsStore.importData(event.target.result)
-        if (result.success) {
-          alert(`成功导入 ${result.count} 首歌曲`)
-        } else {
-          alert(`导入失败：${result.error}`)
-        }
+  uploadImport((result) => {
+    if (result.success) {
+      const messages = []
+      if (result.workspaces > 0) messages.push(`${result.workspaces} 个工作区`)
+      if (result.projects > 0) messages.push(`${result.projects} 个项目`)
+      if (result.tracks > 0) messages.push(`${result.tracks} 个作品`)
+      
+      if (messages.length > 0) {
+        alert(`✅ 成功导入：\n${messages.join('\n')}`)
+        // 刷新页面以显示新数据
+        window.location.reload()
+      } else {
+        alert('⚠️ 没有新数据需要导入（所有数据都是最新的）')
       }
-      reader.readAsText(file)
+    } else {
+      alert(`❌ 导入失败：${result.error}`)
     }
-  }
-  input.click()
+  })
 }
 </script>
 
 <style scoped>
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.header-brand h1 {
+  font-size: 2em;
+  margin: 0 0 4px 0;
+  color: #1a1a1a;
+}
+
+.header-brand .header-tagline {
+  font-size: 0.85em;
+  color: #666;
+  margin: 0;
+}
+
+.header-navigation {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.header-project-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
 .data-management {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-left: 10px;
   padding-left: 10px;
   border-left: 1px solid #e0e0e0;
 }
@@ -153,14 +249,26 @@ function importData() {
 }
 
 @media (max-width: 768px) {
-  .data-management {
-    margin-left: 5px;
-    padding-left: 5px;
+  .header-top {
+    flex-direction: column;
+    align-items: flex-start;
   }
   
-  .btn-link {
-    font-size: 0.75em;
-    padding: 2px 6px;
+  .header-navigation {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .data-management {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
   }
 }
 </style>

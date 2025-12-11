@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pattr 数据修复工具</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #1a1a1a;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button.danger {
+      background: #dc3545;
+    }
+    button.danger:hover {
+      background: #c82333;
+    }
+    button.success {
+      background: #28a745;
+    }
+    button.success:hover {
+      background: #218838;
+    }
+    .output {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      white-space: pre-wrap;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    .section h2 {
+      margin-top: 0;
+      color: #495057;
+      font-size: 18px;
+    }
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      color: #856404;
+    }
+    .success-msg {
+      background: #d4edda;
+      border: 1px solid #28a745;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      color: #155724;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Pattr 数据修复工具</h1>
+    <p class="subtitle">解决"控制台有数据但页面不显示"的问题</p>
+
+    <div class="section">
+      <h2>📊 步骤 1: 诊断数据状态</h2>
+      <button onclick="diagnose()">诊断数据</button>
+      <div id="diagnose-output" class="output" style="display:none;"></div>
+    </div>
+
+    <div class="section">
+      <h2>🔧 步骤 2: 自动修复</h2>
+      <button class="success" onclick="autoFix()">自动修复数据显示问题</button>
+      <div id="fix-output" class="output" style="display:none;"></div>
+    </div>
+
+    <div class="section">
+      <h2>🔄 步骤 3: 重新加载</h2>
+      <button onclick="reloadPage()">刷新页面</button>
+    </div>
+
+    <div class="warning">
+      <strong>⚠️ 注意：</strong> 如果自动修复无效，请尝试下面的"完全重置"选项
+    </div>
+
+    <div class="section">
+      <h2>🗑️ 高级选项: 完全重置（慎用）</h2>
+      <p style="color: #dc3545;">这将删除所有数据并重新迁移！</p>
+      <button class="danger" onclick="resetAndMigrate()">重置并重新迁移</button>
+      <div id="reset-output" class="output" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    function log(elementId, message, isError = false) {
+      const output = document.getElementById(elementId);
+      output.style.display = 'block';
+      const color = isError ? 'red' : 'inherit';
+      output.innerHTML += `<span style="color: ${color}">${message}</span>\n`;
+      console.log(message);
+    }
+
+    function clearLog(elementId) {
+      const output = document.getElementById(elementId);
+      output.innerHTML = '';
+      output.style.display = 'none';
+    }
+
+    function diagnose() {
+      clearLog('diagnose-output');
+      log('diagnose-output', '=== 开始诊断 ===\n');
+
+      // 读取数据
+      const workspaces = JSON.parse(localStorage.getItem('pattr_workspaces') || '[]');
+      const projects = JSON.parse(localStorage.getItem('pattr_projects') || '[]');
+      const tracks = JSON.parse(localStorage.getItem('pattr_tracks') || '[]');
+      const activeWorkspaceId = localStorage.getItem('pattr_active_workspace');
+      const activeProjectId = localStorage.getItem('pattr_active_project');
+
+      log('diagnose-output', `工作区数量: ${workspaces.length}`);
+      log('diagnose-output', `项目数量: ${projects.length}`);
+      log('diagnose-output', `作品数量: ${tracks.length}`);
+      log('diagnose-output', `活跃工作区ID: ${activeWorkspaceId || '未设置'}`);
+      log('diagnose-output', `活跃项目ID: ${activeProjectId || '未设置'}\n`);
+
+      // 检查活跃工作区
+      if (activeWorkspaceId) {
+        const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
+        if (activeWorkspace) {
+          log('diagnose-output', `✅ 活跃工作区: ${activeWorkspace.name}`);
+          const workspaceProjects = projects.filter(p => p.workspaceId === activeWorkspaceId);
+          log('diagnose-output', `   该工作区有 ${workspaceProjects.length} 个项目`);
+        } else {
+          log('diagnose-output', '❌ 活跃工作区不存在！', true);
+        }
+      } else {
+        log('diagnose-output', '❌ 未设置活跃工作区！', true);
+      }
+
+      // 检查活跃项目
+      if (activeProjectId) {
+        const activeProject = projects.find(p => p.id === activeProjectId);
+        if (activeProject) {
+          log('diagnose-output', `✅ 活跃项目: ${activeProject.name}`);
+          const projectTracks = tracks.filter(t => t.projectId === activeProjectId);
+          log('diagnose-output', `   该项目有 ${projectTracks.length} 个作品`);
+          
+          if (projectTracks.length > 0) {
+            log('diagnose-output', '\n   作品列表:');
+            projectTracks.forEach((track, i) => {
+              log('diagnose-output', `   ${i + 1}. ${track.name} (${track.currentStage})`);
+            });
+          } else {
+            log('diagnose-output', '   ⚠️ 该项目没有作品', true);
+          }
+        } else {
+          log('diagnose-output', '❌ 活跃项目不存在！', true);
+        }
+      } else {
+        log('diagnose-output', '❌ 未设置活跃项目！', true);
+      }
+
+      // 检查所有项目和作品
+      log('diagnose-output', '\n=== 所有项目详情 ===');
+      projects.forEach((project, i) => {
+        const projectTracks = tracks.filter(t => t.projectId === project.id);
+        log('diagnose-output', `${i + 1}. ${project.name} (ID: ${project.id.substring(0, 8)}...)`);
+        log('diagnose-output', `   工作区ID: ${project.workspaceId}`);
+        log('diagnose-output', `   作品数: ${projectTracks.length}`);
+      });
+
+      log('diagnose-output', '\n=== 诊断完成 ===');
+    }
+
+    function autoFix() {
+      clearLog('fix-output');
+      log('fix-output', '=== 开始自动修复 ===\n');
+
+      let fixed = false;
+
+      // 读取数据
+      const workspaces = JSON.parse(localStorage.getItem('pattr_workspaces') || '[]');
+      const projects = JSON.parse(localStorage.getItem('pattr_projects') || '[]');
+      const tracks = JSON.parse(localStorage.getItem('pattr_tracks') || '[]');
+      let activeWorkspaceId = localStorage.getItem('pattr_active_workspace');
+      let activeProjectId = localStorage.getItem('pattr_active_project');
+
+      // 修复 1: 设置活跃工作区
+      if (!activeWorkspaceId && workspaces.length > 0) {
+        activeWorkspaceId = workspaces[0].id;
+        localStorage.setItem('pattr_active_workspace', activeWorkspaceId);
+        log('fix-output', `✅ 已设置活跃工作区: ${workspaces[0].name}`);
+        fixed = true;
+      }
+
+      // 修复 2: 设置活跃项目
+      if (!activeProjectId && projects.length > 0) {
+        // 优先选择当前工作区的项目
+        let projectToActivate = projects.find(p => p.workspaceId === activeWorkspaceId);
+        if (!projectToActivate) {
+          projectToActivate = projects[0];
+        }
+        
+        activeProjectId = projectToActivate.id;
+        localStorage.setItem('pattr_active_project', activeProjectId);
+        log('fix-output', `✅ 已设置活跃项目: ${projectToActivate.name}`);
+        fixed = true;
+      }
+
+      // 修复 3: 验证活跃项目是否有效
+      if (activeProjectId) {
+        const activeProject = projects.find(p => p.id === activeProjectId);
+        if (!activeProject) {
+          log('fix-output', '❌ 活跃项目ID无效，重新设置...', true);
+          if (projects.length > 0) {
+            activeProjectId = projects[0].id;
+            localStorage.setItem('pattr_active_project', activeProjectId);
+            log('fix-output', `✅ 已重新设置活跃项目: ${projects[0].name}`);
+            fixed = true;
+          }
+        } else {
+          // 检查项目的作品
+          const projectTracks = tracks.filter(t => t.projectId === activeProjectId);
+          log('fix-output', `\n当前活跃项目: ${activeProject.name}`);
+          log('fix-output', `作品数量: ${projectTracks.length}`);
+          
+          if (projectTracks.length > 0) {
+            log('fix-output', '\n作品列表:');
+            projectTracks.forEach((track, i) => {
+              log('fix-output', `  ${i + 1}. ${track.name} (${track.currentStage})`);
+            });
+          }
+        }
+      }
+
+      // 修复 4: 清理孤立数据
+      const validWorkspaceIds = new Set(workspaces.map(w => w.id));
+      const validProjects = projects.filter(p => validWorkspaceIds.has(p.workspaceId));
+      
+      if (validProjects.length !== projects.length) {
+        localStorage.setItem('pattr_projects', JSON.stringify(validProjects));
+        log('fix-output', `✅ 清理了 ${projects.length - validProjects.length} 个孤立项目`);
+        fixed = true;
+      }
+
+      const validProjectIds = new Set(validProjects.map(p => p.id));
+      const validTracks = tracks.filter(t => validProjectIds.has(t.projectId));
+      
+      if (validTracks.length !== tracks.length) {
+        localStorage.setItem('pattr_tracks', JSON.stringify(validTracks));
+        log('fix-output', `✅ 清理了 ${tracks.length - validTracks.length} 个孤立作品`);
+        fixed = true;
+      }
+
+      if (fixed) {
+        log('fix-output', '\n=== 修复完成！请点击"刷新页面"按钮 ===');
+      } else {
+        log('fix-output', '\n=== 数据正常，无需修复 ===');
+      }
+    }
+
+    function resetAndMigrate() {
+      if (!confirm('确定要删除所有数据并重新迁移吗？\n\n这将：\n1. 删除所有 Pattr 数据\n2. 从旧数据重新迁移\n\n此操作不可撤销！')) {
+        return;
+      }
+
+      clearLog('reset-output');
+      log('reset-output', '=== 开始重置 ===\n');
+
+      // 备份旧数据
+      const oldSongs = localStorage.getItem('musicplan_songs');
+      const oldStartDate = localStorage.getItem('musicplan_start_date');
+      const oldTimeConfig = localStorage.getItem('musicplan_time_config');
+
+      if (!oldSongs) {
+        log('reset-output', '❌ 未找到旧数据（musicplan_songs）', true);
+        log('reset-output', '无法重新迁移。请手动创建项目和作品。');
+        return;
+      }
+
+      log('reset-output', '✅ 找到旧数据');
+      log('reset-output', `   歌曲数据: ${oldSongs ? '存在' : '不存在'}`);
+      log('reset-output', `   开始日期: ${oldStartDate || '未设置'}`);
+
+      // 删除所有 Pattr 数据
+      localStorage.removeItem('pattr_workspaces');
+      localStorage.removeItem('pattr_projects');
+      localStorage.removeItem('pattr_tracks');
+      localStorage.removeItem('pattr_workflows');
+      localStorage.removeItem('pattr_active_workspace');
+      localStorage.removeItem('pattr_active_project');
+      localStorage.removeItem('pattr_migration_version');
+
+      log('reset-output', '\n✅ 已清除所有 Pattr 数据');
+      log('reset-output', '\n=== 重置完成！ ===');
+      log('reset-output', '\n请点击"刷新页面"，系统将自动重新迁移数据');
+    }
+
+    function reloadPage() {
+      location.reload();
+    }
+
+    // 页面加载时自动诊断
+    window.addEventListener('load', () => {
+      diagnose();
+    });
+  </script>
+</body>
+</html>
+

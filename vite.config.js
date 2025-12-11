@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['fonts/**', 'icons/**'],
       manifest: {
-        name: "let'sgetpattern - 音乐制作人日程规划助手",
-        short_name: "let'sgetpattern",
-        description: "专为音乐制作人设计的日程规划和进度跟踪工具",
+        name: "Pattr - 音乐创作项目管理",
+        short_name: "Pattr",
+        description: "灵活的音乐创作项目管理系统",
         theme_color: "#1a1a1a",
         background_color: "#f5f5f5",
         display: "standalone",

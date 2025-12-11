@@ -1,8 +1,8 @@
 {
-  "name": "musicplan-vue",
-  "version": "1.0.0",
+  "name": "pattr",
+  "version": "2.0.0",
   "type": "module",
-  "description": "let'sgetpattern - 音乐制作人日程规划助手",
+  "description": "Pattr - 音乐创作项目管理系统",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -10,16 +10,16 @@
     "generate-icons": "node scripts/generate-icons.js"
   },
   "dependencies": {
-    "firebase": "^10.8.0",
+    "firebase": "^12.6.0",
     "pinia": "^2.1.7",
     "uuid": "^9.0.1",
-    "vue": "^3.4.21",
+    "vue": "^3.5.25",
     "vuefire": "^3.1.22"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.4",
+    "@vitejs/plugin-vue": "^6.0.2",
     "sharp": "^0.34.5",
-    "vite": "^5.1.4",
-    "vite-plugin-pwa": "^0.19.2"
+    "vite": "^7.2.7",
+    "vite-plugin-pwa": "^1.2.0"
   }
 }

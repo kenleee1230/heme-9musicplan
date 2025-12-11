@@ -232,26 +232,50 @@ export function generateDailyPlan(songs, startDate, dailyLearningHours, dailyMak
   const songQueues = activeSongs.map((song, index) => {
     const queue = []
     
-    // 获取 customTasks，如果没有则使用默认 TASKS
-    const customTasks = Array.isArray(song.customTasks) && song.customTasks.length > 0
-      ? song.customTasks
+    // 获取 customSteps（新）或 customTasks（旧），如果没有则使用默认 TASKS
+    const customSteps = song.customSteps || song.customTasks
+    const customTasks = Array.isArray(customSteps) && customSteps.length > 0
+      ? customSteps
       : TASKS
     
-    song.taskHours.forEach((hours, taskIndex) => {
-      if (!song.tasks[taskIndex] && hours > 0) {
-        // 使用 customTasks 中的任务名称
-        const taskName = customTasks[taskIndex] || `任务 ${taskIndex + 1}`
-        queue.push({
-          songId: song.id,
-          songName: song.name,
-          taskIndex: taskIndex,
-          taskName: taskName,
-          hours: hours,
-          remainingHours: hours,
-          isNewGenre: song.isNewGenre
-        })
-      }
-    })
+    // 获取 stepsCompleted（新）或 tasks（旧）
+    const stepsCompleted = song.stepsCompleted || song.tasks || []
+    const taskHours = song.taskHours || []
+    
+    // 如果有 taskHours，使用它；否则为每个步骤分配默认时长
+    if (taskHours.length > 0) {
+      taskHours.forEach((hours, taskIndex) => {
+        if (!stepsCompleted[taskIndex] && hours > 0) {
+          // 使用 customTasks 中的任务名称
+          const taskName = customTasks[taskIndex] || `任务 ${taskIndex + 1}`
+          queue.push({
+            songId: song.id,
+            songName: song.name,
+            taskIndex: taskIndex,
+            taskName: taskName,
+            hours: hours,
+            remainingHours: hours,
+            isNewGenre: song.isNewGenre || song.metadata?.isNewGenre
+          })
+        }
+      })
+    } else {
+      // 如果没有 taskHours，为每个未完成的步骤分配默认时长
+      const defaultHoursPerTask = (song.estimatedHours || 40) / customTasks.length
+      customTasks.forEach((taskName, taskIndex) => {
+        if (!stepsCompleted[taskIndex]) {
+          queue.push({
+            songId: song.id,
+            songName: song.name,
+            taskIndex: taskIndex,
+            taskName: taskName,
+            hours: defaultHoursPerTask,
+            remainingHours: defaultHoursPerTask,
+            isNewGenre: song.isNewGenre || song.metadata?.isNewGenre
+          })
+        }
+      })
+    }
     
     // 使用智能推断函数计算歌曲的开始日期
     let songStartDate = getSongStartDate(song, startDate, index)
@@ -390,18 +414,21 @@ function matchStageByKeywords(taskName, taskIndex, totalTasks) {
 
 // 根据最后一个已完成步骤判断当前阶段
 export function getStageFromLastCompletedTask(song) {
-  if (!song || !song.tasks || !Array.isArray(song.tasks)) {
+  // 获取 stepsCompleted（新）或 tasks（旧）
+  const stepsCompleted = song?.stepsCompleted || song?.tasks
+  if (!song || !stepsCompleted || !Array.isArray(stepsCompleted)) {
     return '曲风研究'
   }
 
-  // 获取 customTasks，如果没有则使用默认 TASKS
-  const customTasks = (Array.isArray(song.customTasks) && song.customTasks.length > 0)
-    ? song.customTasks
+  // 获取 customSteps（新）或 customTasks（旧），如果没有则使用默认 TASKS
+  const customSteps = song.customSteps || song.customTasks
+  const customTasks = (Array.isArray(customSteps) && customSteps.length > 0)
+    ? customSteps
     : TASKS
 
   // 找到所有已完成的步骤索引
   const completedIndices = []
-  song.tasks.forEach((completed, index) => {
+  stepsCompleted.forEach((completed, index) => {
     if (completed && index < customTasks.length) {
       completedIndices.push(index)
     }
@@ -415,7 +442,7 @@ export function getStageFromLastCompletedTask(song) {
   // 找到第一个未完成的步骤
   let firstIncompleteIndex = -1
   for (let i = 0; i < customTasks.length; i++) {
-    if (!song.tasks[i]) {
+    if (!stepsCompleted[i]) {
       firstIncompleteIndex = i
       break
     }

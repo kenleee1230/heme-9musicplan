@@ -1,12 +1,29 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 用户数据：只有认证用户可以读写自己的数据
+    // 向后兼容：旧的 songs 和 settings 集合
     match /users/{userId}/songs/{songId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
     match /users/{userId}/settings/{settingId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // 新的数据结构
+    match /users/{userId}/workspaces/{workspaceId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /users/{userId}/projects/{projectId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /users/{userId}/tracks/{trackId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /users/{userId}/workflows/{workflowId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }

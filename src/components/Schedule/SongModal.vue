@@ -181,6 +181,8 @@ import { TASKS } from '@/utils/constants'
 import { calculateTaskHours, getStageFromLastCompletedTask, getSongStartDate } from '@/utils/calculations'
 import { useSongsStore } from '@/stores/songs'
 import { useSettingsStore } from '@/stores/settings'
+import { useProjectsStore } from '@/stores/projects'
+import { useWorkflowsStore } from '@/stores/workflows'
 import { formatDuration } from '@/utils/helpers'
 
 const props = defineProps({
@@ -191,6 +193,8 @@ const emit = defineEmits(['close', 'save'])
 
 const songsStore = useSongsStore()
 const settingsStore = useSettingsStore()
+const projectsStore = useProjectsStore()
+const workflowsStore = useWorkflowsStore()
 const { startDate: projectStartDate } = storeToRefs(settingsStore)
 const { songs } = storeToRefs(songsStore)
 const showTaskHours = ref(false)
@@ -260,15 +264,40 @@ function formatInferredDate(date) {
   return `${year}-${month}-${day}`
 }
 
+// 获取默认步骤（根据项目类型）
+function getDefaultSteps() {
+  const projectsStore = useProjectsStore()
+  const workflowsStore = useWorkflowsStore()
+  const activeProject = projectsStore.activeProject
+  
+  if (activeProject?.templateId) {
+    const workflow = workflowsStore.getDefaultWorkflowForProjectType(activeProject.templateId)
+    if (workflow && workflow.steps) {
+      return {
+        steps: workflow.steps.map(s => s.name),
+        hours: workflow.steps.map(s => s.estimatedHours || 0)
+      }
+    }
+  }
+  
+  // 默认使用 TASKS
+  return {
+    steps: [...TASKS],
+    hours: calculateTaskHours(40, false)
+  }
+}
+
+const defaultSteps = getDefaultSteps()
+
 const formData = ref({
   name: '',
   genre: '',
-  estimatedHours: 40,
+  estimatedHours: defaultSteps.hours.reduce((sum, h) => sum + h, 0) || 40,
   isNewGenre: false,
-  currentStage: '曲风研究',
-  customTasks: [...TASKS],
-  tasks: new Array(TASKS.length).fill(false),
-  taskHours: calculateTaskHours(40, false),
+  currentStage: defaultSteps.steps[0] || '曲风研究',
+  customTasks: defaultSteps.steps,
+  tasks: new Array(defaultSteps.steps.length).fill(false),
+  taskHours: defaultSteps.hours,
   timeSpent: 0,
   startDate: '',
   notes: ''
@@ -277,10 +306,10 @@ const formData = ref({
 // 如果是编辑模式，填充表单
 watch(() => props.song, (song) => {
   if (song) {
-    // 获取 customTasks，如果没有则使用默认 TASKS
+    // 获取 customTasks，如果没有则使用项目类型的默认步骤
     const customTasks = Array.isArray(song.customTasks) && song.customTasks.length > 0
       ? [...song.customTasks]
-      : [...TASKS]
+      : getDefaultSteps().steps
     
     // 确保 tasks 和 taskHours 长度与 customTasks 一致
     let tasks = song.tasks || []
@@ -354,16 +383,17 @@ watch(() => props.song, (song) => {
       showTaskHours.value = true
     }
   } else {
-    // 新建模式，重置表单
+    // 新建模式，重置表单 - 使用项目类型的默认步骤
+    const freshSteps = getDefaultSteps()
     formData.value = {
       name: '',
       genre: '',
-      estimatedHours: 40,
+      estimatedHours: freshSteps.hours.reduce((sum, h) => sum + h, 0) || 40,
       isNewGenre: false,
-      currentStage: '曲风研究',
-      customTasks: [...TASKS],
-      tasks: new Array(TASKS.length).fill(false),
-      taskHours: calculateTaskHours(40, false),
+      currentStage: freshSteps.steps[0] || '曲风研究',
+      customTasks: freshSteps.steps,
+      tasks: new Array(freshSteps.steps.length).fill(false),
+      taskHours: freshSteps.hours,
       timeSpent: 0,
       startDate: '',
       notes: ''

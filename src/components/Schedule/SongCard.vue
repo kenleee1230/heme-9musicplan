@@ -137,7 +137,7 @@ import { ref, computed } from 'vue'
 import { calculateProgress } from '@/utils/calculations'
 import { TASKS } from '@/utils/constants'
 import { useTimer } from '@/composables/useTimer'
-import { useSongsStore } from '@/stores/songs'
+import { useTracksStore } from '@/stores/tracks'
 import { formatDuration, formatTimeSpent } from '@/utils/helpers'
 
 const props = defineProps({
@@ -149,7 +149,7 @@ const props = defineProps({
 
 defineEmits(['edit', 'delete'])
 
-const songsStore = useSongsStore()
+const tracksStore = useTracksStore()
 const { startTimer: startTimerFn } = useTimer()
 
 const showRecords = ref(false)
@@ -162,13 +162,16 @@ const editForm = ref({
 const progress = computed(() => calculateProgress(props.song))
 
 const completedTasksCount = computed(() => {
-  return props.song.tasks.filter(Boolean).length
+  // 使用新的数据结构：stepsCompleted
+  const steps = props.song.stepsCompleted || props.song.tasks || []
+  return Array.isArray(steps) ? steps.filter(Boolean).length : 0
 })
 
 const totalTasks = computed(() => {
-  // 使用 customTasks 长度，如果没有则使用默认 TASKS 长度
-  return (Array.isArray(props.song.customTasks) && props.song.customTasks.length > 0)
-    ? props.song.customTasks.length
+  // 使用新的数据结构：customSteps，如果没有则使用默认 TASKS 长度
+  const customSteps = props.song.customSteps || props.song.customTasks
+  return (Array.isArray(customSteps) && customSteps.length > 0)
+    ? customSteps.length
     : TASKS.length
 })
 
@@ -203,7 +206,7 @@ const hasStartDate = computed(() => {
 
 // 获取计时记录（从 store 获取最新数据）
 const timerRecords = computed(() => {
-  const latestSong = songsStore.getSongById(props.song.id) || props.song
+  const latestSong = tracksStore.getTrackById(props.song.id) || props.song
   return latestSong.timerRecords || []
 })
 
@@ -266,7 +269,7 @@ async function saveEdit() {
   try {
     // 保留1位小数
     const roundedDuration = Math.round(newDuration * 10) / 10
-    await songsStore.updateTimerRecord(props.song.id, editingRecord.value.id, {
+    await tracksStore.updateTimerRecord(props.song.id, editingRecord.value.id, {
       duration: roundedDuration,
       details: editForm.value.details
     })
@@ -279,7 +282,7 @@ async function saveEdit() {
 
 async function deleteRecord(recordId) {
   if (confirm('确定要删除这条计时记录吗？')) {
-    await songsStore.deleteTimerRecord(props.song.id, recordId)
+    await tracksStore.deleteTimerRecord(props.song.id, recordId)
   }
 }
 </script>

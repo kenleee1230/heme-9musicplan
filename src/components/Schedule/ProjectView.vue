@@ -1,7 +1,11 @@
 <template>
   <div class="project-view">
-    <div v-if="songs.length === 0" class="empty-state">
-      <p>还没有添加歌曲</p>
+    <div v-if="!activeProject" class="empty-state">
+      <p>请先选择或创建一个项目</p>
+    </div>
+    
+    <div v-else-if="songs.length === 0" class="empty-state">
+      <p>还没有添加作品</p>
     </div>
     
     <template v-else>
@@ -17,8 +21,8 @@
             </div>
           </div>
           <div class="project-stat">
-            <div class="project-stat-label">已完成歌曲</div>
-            <div class="project-stat-value">{{ completedSongs }} / {{ TARGET_SONGS }}</div>
+            <div class="project-stat-label">已完成作品</div>
+            <div class="project-stat-value">{{ completedSongs }} / {{ TARGET_SONGS.value || songs.length }}</div>
           </div>
           <div class="project-stat">
             <div class="project-stat-label">进行中</div>
@@ -77,12 +81,18 @@
 <script setup>
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useSongsStore } from '@/stores/songs'
-import { TARGET_SONGS, STAGES } from '@/utils/constants'
+import { useTracksStore } from '@/stores/tracks'
+import { useProjectsStore } from '@/stores/projects'
+import { STAGES } from '@/utils/constants'
 import { calculateProgress } from '@/utils/calculations'
 
-const songsStore = useSongsStore()
-const { songs } = storeToRefs(songsStore)
+const tracksStore = useTracksStore()
+const projectsStore = useProjectsStore()
+
+const { projectTracks: songs } = storeToRefs(tracksStore)
+const { activeProject } = storeToRefs(projectsStore)
+
+const TARGET_SONGS = computed(() => activeProject.value?.targetCount || 9)
 
 const totalProgress = computed(() => {
   if (songs.value.length === 0) return 0

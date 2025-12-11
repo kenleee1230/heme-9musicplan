@@ -1,7 +1,11 @@
 <template>
   <div class="timeline-view">
-    <div v-if="songs.length === 0" class="empty-state">
-      <p>添加歌曲后，时间线规划将显示在这里</p>
+    <div v-if="!hasProject" class="empty-state">
+      <p>请先选择或创建一个项目</p>
+    </div>
+    
+    <div v-else-if="songs.length === 0" class="empty-state">
+      <p>添加作品后，时间线规划将显示在这里</p>
     </div>
     
     <template v-else>
@@ -10,8 +14,9 @@
         <h3>📅 时间规划</h3>
         <p><strong>开始日期：</strong>{{ formatDate(startDateObj) }}</p>
         <p><strong>结束日期：</strong>{{ formatDate(endDateObj) }}</p>
-        <p><strong>目标：</strong>{{ remainingDays }} 天内完成 {{ TARGET_SONGS }} 首歌（共 {{ TOTAL_DAYS }} 天）</p>
-        <p><strong>每首歌：</strong>{{ avgHoursPerSong.toFixed(0) }} 有效小时</p>
+        <p v-if="remainingDays !== null"><strong>剩余天数：</strong>{{ remainingDays }} 天</p>
+        <p v-if="targetCount"><strong>目标：</strong>{{ targetCount }} 首作品</p>
+        <p><strong>每首作品：</strong>{{ avgHoursPerSong.toFixed(0) }} 有效小时</p>
         <p><strong>总工作量：</strong>{{ totalHours.toFixed(0) }} 有效小时</p>
       </div>
       
@@ -33,23 +38,32 @@
 <script setup>
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useSongsStore } from '@/stores/songs'
-import { useSettingsStore } from '@/stores/settings'
+import { useTracksStore } from '@/stores/tracks'
+import { useProjectsStore } from '@/stores/projects'
 import { 
-  TARGET_SONGS, 
-  TOTAL_DAYS, 
   HOURS_PER_SONG, 
   RECOMMENDED_HOURS_PER_DAY
 } from '@/utils/constants'
-import { calculateProgress, getRemainingDays } from '@/utils/calculations'
+import { calculateProgress } from '@/utils/calculations'
 
-const songsStore = useSongsStore()
-const settingsStore = useSettingsStore()
+const tracksStore = useTracksStore()
+const projectsStore = useProjectsStore()
 
-const { songs } = storeToRefs(songsStore)
-const { startDate, dailyMakingHours } = storeToRefs(settingsStore)
+const { projectTracks: songs } = storeToRefs(tracksStore)
+const { activeProject } = storeToRefs(projectsStore)
 
-const remainingDays = computed(() => getRemainingDays(startDate.value))
+const startDate = computed(() => activeProject.value?.startDate || null)
+const deadline = computed(() => activeProject.value?.deadline || null)
+const dailyMakingHours = computed(() => activeProject.value?.settings?.dailyHours || 2)
+const targetCount = computed(() => activeProject.value?.targetCount || null)
+
+const remainingDays = computed(() => {
+  if (!deadline.value) return null
+  const end = new Date(deadline.value)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Math.ceil((end - today) / (1000 * 60 * 60 * 24))
+})
 
 const startDateObj = computed(() => {
   if (!startDate.value) return new Date()
@@ -57,8 +71,12 @@ const startDateObj = computed(() => {
 })
 
 const endDateObj = computed(() => {
+  if (deadline.value) {
+    return new Date(deadline.value)
+  }
+  // 如果没有截止日期，使用开始日期 + 180天作为默认
   const end = new Date(startDateObj.value)
-  end.setDate(end.getDate() + TOTAL_DAYS)
+  end.setDate(end.getDate() + 180)
   return end
 })
 
@@ -68,7 +86,10 @@ const avgHoursPerSong = computed(() => {
   return sum / songs.value.length
 })
 
-const totalHours = computed(() => TARGET_SONGS * avgHoursPerSong.value)
+const totalHours = computed(() => {
+  const count = targetCount.value || songs.value.length || 9
+  return count * avgHoursPerSong.value
+})
 
 function formatDate(date) {
   const year = date.getFullYear()
@@ -82,6 +103,9 @@ function getEstimatedDays(song) {
   const hoursPerDay = dailyMakingHours.value || RECOMMENDED_HOURS_PER_DAY
   return remainingTime / hoursPerDay
 }
+
+// 添加空状态提示
+const hasProject = computed(() => !!activeProject.value)
 </script>
 
 <style scoped>
