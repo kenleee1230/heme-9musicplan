@@ -100,24 +100,26 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
       const userId = authStore.user.uid
       console.log('[CloudSync] 开始从云端加载数据，用户ID:', userId)
 
-      // 检查云端是否有新数据结构
+      // 检查云端数据结构
       const hasNewData = await checkNewDataStructure(userId)
+      const hasOldData = await checkOldDataStructure(userId)
+      
+      console.log('[CloudSync] 云端数据检查:', { hasNewData, hasOldData })
 
       if (hasNewData) {
         // 加载新数据结构
         console.log('[CloudSync] 检测到新数据结构，加载中...')
         await loadNewDataStructure(userId)
-      } else {
-        // 检查是否有旧数据需要迁移
-        console.log('[CloudSync] 检查旧数据...')
-        const hasOldData = await checkOldDataStructure(userId)
-        
-        if (hasOldData) {
-          console.log('[CloudSync] 检测到旧数据，开始迁移...')
-          await migrateOldDataToNew(userId)
-        } else {
-          console.log('[CloudSync] 云端无数据')
-        }
+      }
+      
+      // 即使有新数据，也要检查是否有旧数据需要迁移
+      if (hasOldData) {
+        console.log('[CloudSync] 检测到旧数据，开始迁移...')
+        await migrateOldDataToNew(userId)
+      }
+      
+      if (!hasNewData && !hasOldData) {
+        console.log('[CloudSync] 云端无数据')
       }
 
       lastSyncTime.value = new Date().toISOString()
@@ -235,9 +237,19 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     localStorage.setItem('musicplan_songs', JSON.stringify(oldSongs))
     console.log('[CloudSync] 旧数据已保存到 localStorage')
     
-    // 强制执行迁移（不检查版本号，因为云端有旧数据就需要迁移）
+    // 强制执行迁移（临时重置版本号以触发迁移）
     console.log('[CloudSync] 执行数据迁移...')
+    const MIGRATION_VERSION_KEY = 'pattr_migration_version'
+    const currentVersion = localStorage.getItem(MIGRATION_VERSION_KEY)
+    console.log('[CloudSync] 当前迁移版本:', currentVersion)
+    
+    // 临时重置版本号
+    localStorage.setItem(MIGRATION_VERSION_KEY, '0')
+    
+    // 执行迁移
     migrateData()
+    
+    console.log('[CloudSync] 迁移版本已更新')
 
     // 3. 重新加载迁移后的数据
     const workspacesStore = useWorkspacesStore()

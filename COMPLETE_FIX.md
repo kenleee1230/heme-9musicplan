@@ -7,7 +7,13 @@
 
 ## 已完成的修复
 
-### ✅ 1. 修复迁移逻辑 (`src/utils/migration.js`)
+### ✅ 1. 修复 projectsStore 导出 (`src/stores/projects.js`)
+
+**问题**：`saveActiveProject` 函数未导出，导致 `workspaces.js` 调用失败。
+
+**修复**：在 `return` 语句中添加 `saveActiveProject` 导出。
+
+### ✅ 2. 修复迁移逻辑 (`src/utils/migration.js`)
 
 **问题**：如果已有工作区/项目，就跳过整个迁移，导致旧歌曲无法迁移。
 

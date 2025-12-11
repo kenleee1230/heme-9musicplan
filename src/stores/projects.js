@@ -259,6 +259,7 @@ export const useProjectsStore = defineStore('projects', () => {
     workspaceProjects,
     // 方法
     loadProjects,
+    saveActiveProject,
     createProject,
     updateProject,
     deleteProject,

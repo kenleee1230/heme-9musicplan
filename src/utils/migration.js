@@ -61,6 +61,12 @@ function migrateToV1() {
   const existingProjects = loadFromStorage(PATTR_PROJECTS_KEY, [])
   const existingTracks = loadFromStorage(PATTR_TRACKS_KEY, [])
   
+  console.log('[Migration V1] Existing data:', {
+    workspaces: existingWorkspaces.length,
+    projects: existingProjects.length,
+    tracks: existingTracks.length
+  })
+  
   // 如果已有作品数据，说明已经迁移过了，跳过
   if (existingTracks.length > 0) {
     console.log('[Migration V1] Tracks already exist, skipping migration')
@@ -68,22 +74,16 @@ function migrateToV1() {
   }
   
   // 如果已有工作区和项目，使用现有的；否则创建新的
-  let workspaceId, projectId
+  let workspaceId, projectId, workspace, project
   
   if (existingWorkspaces.length > 0 && existingProjects.length > 0) {
     console.log('[Migration V1] Using existing workspace and project')
     workspaceId = existingWorkspaces[0].id
     projectId = existingProjects[0].id
+    workspace = existingWorkspaces[0]
+    project = existingProjects[0]
   } else {
     console.log('[Migration V1] Creating new workspace and project')
-    workspaceId = null
-    projectId = null
-  }
-  
-  // 如果没有工作区和项目，创建新的
-  let workspace, project
-  
-  if (!workspaceId || !projectId) {
     // 创建默认工作区
     workspaceId = uuidv4()
     workspace = {
@@ -134,27 +134,34 @@ function migrateToV1() {
     // 设置活跃工作区和项目
     saveToStorage('pattr_active_workspace', workspaceId)
     saveToStorage('pattr_active_project', projectId)
-  } else {
-    // 使用现有的项目
-    project = existingProjects[0]
   }
   
   // 迁移歌曲到作品
   console.log('[Migration V1] Migrating', oldSongs.length, 'songs to project:', projectId)
   const tracks = oldSongs.map(song => migrateSongToTrack(song, projectId))
   
+  console.log('[Migration V1] Migrated tracks:', tracks.length)
+  console.log('[Migration V1] Track IDs:', tracks.map(t => t.id))
+  
   // 保存作品数据
   saveToStorage(PATTR_TRACKS_KEY, tracks)
+  console.log('[Migration V1] Tracks saved to localStorage')
   
   console.log('[Migration V1] Successfully migrated:')
-  console.log('  - Workspace:', workspaceId)
-  console.log('  - Project:', projectId)
+  console.log('  - Workspace:', workspaceId, workspace?.name)
+  console.log('  - Project:', projectId, project?.name)
   console.log('  -', tracks.length, 'tracks')
   
   // 更新里程碑完成状态
-  if (project) {
+  if (project && project.milestones) {
     updateMilestones(project, tracks)
-    saveToStorage(PATTR_PROJECTS_KEY, [project])
+    // 如果使用现有项目，需要更新整个项目数组
+    const allProjects = loadFromStorage(PATTR_PROJECTS_KEY, [])
+    const projectIndex = allProjects.findIndex(p => p.id === project.id)
+    if (projectIndex >= 0) {
+      allProjects[projectIndex] = project
+      saveToStorage(PATTR_PROJECTS_KEY, allProjects)
+    }
   }
 }
 
