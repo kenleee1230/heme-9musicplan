@@ -197,10 +197,35 @@ function closeSongModal() {
 }
 
 function saveSong(songData) {
+  // 转换 formData 格式（旧格式）到 track 格式（新格式）
+  const trackData = {
+    // 基本字段
+    name: songData.name,
+    estimatedHours: songData.estimatedHours,
+    timeSpent: songData.timeSpent,
+    startDate: songData.startDate,
+    // 新数据结构：customSteps 和 stepsCompleted
+    customSteps: songData.customSteps || songData.customTasks || [],
+    stepsCompleted: songData.stepsCompleted || songData.tasks || [],
+    taskHours: songData.taskHours || [],
+    currentStage: songData.currentStage,
+    // 新数据结构：metadata
+    metadata: {
+      genre: songData.metadata?.genre || songData.genre || '',
+      notes: songData.metadata?.notes || songData.notes || '',
+      isNewGenre: songData.metadata?.isNewGenre !== undefined 
+        ? songData.metadata.isNewGenre 
+        : (songData.isNewGenre || false),
+      // 保留其他 metadata 字段（如果有）
+      bpm: songData.metadata?.bpm || null,
+      key: songData.metadata?.key || null
+    }
+  }
+  
   if (editingSong.value) {
-    tracksStore.updateTrack(editingSong.value.id, songData)
+    tracksStore.updateTrack(editingSong.value.id, trackData)
   } else {
-    tracksStore.createTrack(songData)
+    tracksStore.createTrack(trackData)
   }
   closeSongModal()
 }

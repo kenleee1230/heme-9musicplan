@@ -2,12 +2,12 @@
   <div class="song-card">
     <div class="song-header">
       <div class="song-title-section">
-        <div class="song-title">{{ song.name }}</div>
+        <div class="song-title">{{ currentTrack.name }}</div>
         <!-- 开始制作时间提醒 -->
         <div 
           v-if="!hasStartDate" 
           class="start-date-reminder"
-          @click="$emit('edit', song)"
+          @click="$emit('edit', currentTrack)"
           title="点击设置开始制作时间"
         >
           <span class="reminder-icon">📅</span>
@@ -15,7 +15,7 @@
         </div>
       </div>
       <div class="song-stage">
-        当前阶段：{{ song.currentStage }}
+        当前阶段：{{ currentTrack.currentStage }}
       </div>
     </div>
     
@@ -32,11 +32,11 @@
     <div class="song-info">
       <div class="info-item">
         <div class="info-label">子曲风</div>
-        <div class="info-value">{{ song.genre || '未设置' }}</div>
+        <div class="info-value">{{ (currentTrack.metadata?.genre || currentTrack.genre) || '未设置' }}</div>
       </div>
       <div class="info-item">
         <div class="info-label">预计时长</div>
-        <div class="info-value">{{ song.estimatedHours }}h</div>
+        <div class="info-value">{{ currentTrack.estimatedHours }}h</div>
       </div>
       <div class="info-item">
         <div class="info-label">已用时长</div>
@@ -54,8 +54,8 @@
       >
         {{ showRecords ? '📊 收起' : '📊 记录' }}
       </button>
-      <button class="btn btn-small btn-edit" @click="$emit('edit', song)">编辑</button>
-      <button class="btn btn-small btn-delete" @click="$emit('delete', song)">删除</button>
+      <button class="btn btn-small btn-edit" @click="$emit('edit', currentTrack)">编辑</button>
+      <button class="btn btn-small btn-delete" @click="$emit('delete', currentTrack)">删除</button>
     </div>
     
     <!-- 计时记录区域 -->
@@ -159,29 +159,34 @@ const editForm = ref({
   details: ''
 })
 
-const progress = computed(() => calculateProgress(props.song))
+// 获取最新的 track 数据（从 store 获取，确保数据是最新的）
+const currentTrack = computed(() => {
+  return tracksStore.getTrackById(props.song.id) || props.song
+})
+
+const progress = computed(() => calculateProgress(currentTrack.value))
 
 const completedTasksCount = computed(() => {
   // 使用新的数据结构：stepsCompleted
-  const steps = props.song.stepsCompleted || props.song.tasks || []
+  const steps = currentTrack.value.stepsCompleted || currentTrack.value.tasks || []
   return Array.isArray(steps) ? steps.filter(Boolean).length : 0
 })
 
 const totalTasks = computed(() => {
   // 使用新的数据结构：customSteps，如果没有则使用默认 TASKS 长度
-  const customSteps = props.song.customSteps || props.song.customTasks
+  const customSteps = currentTrack.value.customSteps || currentTrack.value.customTasks
   return (Array.isArray(customSteps) && customSteps.length > 0)
     ? customSteps.length
     : TASKS.length
 })
 
 const hasTimerRecords = computed(() => {
-  return props.song.timerRecords && props.song.timerRecords.length > 0
+  return currentTrack.value.timerRecords && currentTrack.value.timerRecords.length > 0
 })
 
 // 判断歌曲是否手动设置了开始制作时间
 const hasStartDate = computed(() => {
-  const startDate = props.song.startDate
+  const startDate = currentTrack.value.startDate
   if (!startDate || typeof startDate !== 'string' || startDate.trim() === '') {
     return false
   }
@@ -204,11 +209,6 @@ const hasStartDate = computed(() => {
   return !isNaN(parsedDate.getTime())
 })
 
-// 获取最新的 track 数据（从 store 获取，确保数据是最新的）
-const currentTrack = computed(() => {
-  return tracksStore.getTrackById(props.song.id) || props.song
-})
-
 // 获取计时记录（从 store 获取最新数据）
 const timerRecords = computed(() => {
   return currentTrack.value.timerRecords || []
@@ -224,8 +224,8 @@ const sortedRecords = computed(() => {
 })
 
 function startTimer() {
-  // 确保使用 tracksStore 中的最新 track 数据
-  const track = tracksStore.getTrackById(props.song.id) || props.song
+  // 使用 currentTrack，确保数据是最新的
+  const track = currentTrack.value
   if (!track || !track.id) {
     console.error('[SongCard] Track not found for timer:', props.song.id)
     alert('无法启动计时器：歌曲数据不存在')
@@ -293,7 +293,7 @@ async function saveEdit() {
 
 async function deleteRecord(recordId) {
   if (confirm('确定要删除这条计时记录吗？')) {
-    await tracksStore.deleteTimerRecord(props.song.id, recordId)
+    await tracksStore.deleteTimerRecord(currentTrack.value.id, recordId)
   }
 }
 </script>

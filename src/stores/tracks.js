@@ -42,7 +42,17 @@ export const useTracksStore = defineStore('tracks', () => {
   // 从 localStorage 加载作品
   function loadTracks() {
     const savedTracks = loadFromStorage(PATTR_TRACKS_KEY, [])
-    tracks.value = savedTracks.map(track => normalizeTrack(track))
+    console.log(`[TracksStore] 从 localStorage 加载 ${savedTracks.length} 个作品`)
+    
+    tracks.value = savedTracks.map(track => {
+      const normalized = normalizeTrack(track)
+      const genre = normalized.metadata?.genre || normalized.genre || '未设置'
+      console.log(`[TracksStore] 加载作品: ${normalized.name} (${normalized.id}), updatedAt: ${normalized.updatedAt}, genre: ${genre}`)
+      console.log(`[TracksStore] 规范化后: genre=${normalized.genre}, metadata.genre=${normalized.metadata?.genre}`)
+      return normalized
+    })
+    
+    console.log(`[TracksStore] 加载完成，共 ${tracks.value.length} 个作品`)
   }
 
   // 规范化作品数据
@@ -201,6 +211,24 @@ export const useTracksStore = defineStore('tracks', () => {
 
     tracks.value.push(track)
     saveTracks()
+    
+    // 如果已登录，自动同步到云端
+    Promise.resolve().then(async () => {
+      try {
+        const { useAuthStore } = await import('./auth')
+        const authStore = useAuthStore()
+        if (authStore.isAuthenticated) {
+          const { useCloudSyncStore } = await import('./cloudSync')
+          const cloudSyncStore = useCloudSyncStore()
+          await cloudSyncStore.syncTracksToCloud(authStore.user.uid, [track])
+        }
+      } catch (err) {
+        console.error('自动同步新作品到云端失败:', err)
+      }
+    }).catch(err => {
+      console.error('同步处理出错:', err)
+    })
+    
     return track
   }
 
@@ -211,9 +239,19 @@ export const useTracksStore = defineStore('tracks', () => {
 
     const track = tracks.value[index]
     
+    // 处理 metadata 合并（如果 data 中有 metadata，需要合并而不是覆盖）
+    const updateData = { ...data }
+    if (data.metadata && track.metadata) {
+      // 合并 metadata，保留原有字段
+      updateData.metadata = {
+        ...track.metadata,
+        ...data.metadata
+      }
+    }
+    
     // 更新数据
     Object.assign(track, {
-      ...data,
+      ...updateData,
       updatedAt: new Date().toISOString()
     })
 
@@ -227,6 +265,24 @@ export const useTracksStore = defineStore('tracks', () => {
     }
 
     saveTracks()
+    
+    // 如果已登录，自动同步到云端
+    Promise.resolve().then(async () => {
+      try {
+        const { useAuthStore } = await import('./auth')
+        const authStore = useAuthStore()
+        if (authStore.isAuthenticated) {
+          const { useCloudSyncStore } = await import('./cloudSync')
+          const cloudSyncStore = useCloudSyncStore()
+          await cloudSyncStore.syncTracksToCloud(authStore.user.uid, [track])
+        }
+      } catch (err) {
+        console.error('自动同步作品更新到云端失败:', err)
+      }
+    }).catch(err => {
+      console.error('同步处理出错:', err)
+    })
+    
     return true
   }
 
@@ -237,6 +293,24 @@ export const useTracksStore = defineStore('tracks', () => {
 
     tracks.value.splice(index, 1)
     saveTracks()
+    
+    // 如果已登录，自动从云端删除
+    Promise.resolve().then(async () => {
+      try {
+        const { useAuthStore } = await import('./auth')
+        const authStore = useAuthStore()
+        if (authStore.isAuthenticated) {
+          const { useCloudSyncStore } = await import('./cloudSync')
+          const cloudSyncStore = useCloudSyncStore()
+          await cloudSyncStore.deleteTrackFromCloud(id)
+        }
+      } catch (err) {
+        console.error('自动从云端删除作品失败:', err)
+      }
+    }).catch(err => {
+      console.error('删除处理出错:', err)
+    })
+    
     return true
   }
 

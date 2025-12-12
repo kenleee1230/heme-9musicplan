@@ -10,7 +10,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { collection, doc, getDocs, setDoc, deleteDoc, getDoc, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDocs, getDocsFromServer, setDoc, deleteDoc, getDoc, writeBatch } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { useAuthStore } from './auth'
 import { useWorkspacesStore } from './workspaces'
@@ -139,12 +139,21 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
 
   /**
    * 检查云端是否有新数据结构
+   * 检查 workspaces 或 tracks（因为 tracks 可能先于 workspaces 存在）
    */
   async function checkNewDataStructure(userId) {
     try {
+      // 先检查 workspaces（更可靠）
       const workspacesRef = collection(db, 'users', userId, 'workspaces')
-      const snapshot = await getDocs(workspacesRef)
-      return !snapshot.empty
+      const workspacesSnapshot = await getDocs(workspacesRef)
+      if (!workspacesSnapshot.empty) {
+        return true
+      }
+      
+      // 如果没有 workspaces，检查 tracks（向后兼容：可能只有 tracks 没有 workspaces）
+      const tracksRef = collection(db, 'users', userId, 'tracks')
+      const tracksSnapshot = await getDocs(tracksRef)
+      return !tracksSnapshot.empty
     } catch (error) {
       console.error('[CloudSync] 检查新数据结构失败:', error)
       return false
@@ -221,8 +230,34 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     }
 
     if (tracks.length > 0) {
-      tracksStore.tracks = tracks
+      // 规范化 tracks 数据（确保数据格式一致）
+      // 注意：这里需要规范化，因为从云端加载的数据可能格式不完全一致
+      const normalizedTracks = tracks.map(track => {
+        // 使用 tracksStore 的内部 normalizeTrack 方法
+        // 但由于 normalizeTrack 是内部方法，我们直接保存原始数据
+        // loadTracks() 会再次规范化
+        return track
+      })
+      
+      // 先保存到 localStorage（使用规范化后的数据）
+      tracksStore.tracks = normalizedTracks
       tracksStore.saveTracks()
+      console.log(`[CloudSync] 已加载 ${tracks.length} 个作品到本地存储`)
+      
+      // 打印每个作品的更新时间，用于调试
+      tracks.forEach(track => {
+        console.log(`[CloudSync] 作品 ${track.name} (${track.id}): updatedAt=${track.updatedAt}`)
+      })
+      
+      // 立即重新加载，确保数据被规范化
+      tracksStore.loadTracks()
+      console.log(`[CloudSync] 重新加载 tracks，当前 store 中有 ${tracksStore.tracks.length} 个作品`)
+    } else {
+      console.log('[CloudSync] 云端没有作品数据')
+      // 即使没有数据，也要清空 store
+      tracksStore.tracks = []
+      tracksStore.saveTracks()
+      tracksStore.loadTracks()
     }
 
     console.log(`[CloudSync] 加载完成: ${workspaces.length} 工作区, ${projects.length} 项目, ${tracks.length} 作品`)
@@ -336,6 +371,8 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   async function syncTracksToCloud(userId, tracks) {
     const tracksRef = collection(db, 'users', userId, 'tracks')
     
+    console.log(`[CloudSync] 开始同步 ${tracks.length} 个作品到云端`)
+    
     // 使用批量写入提高性能
     const batchSize = 500 // Firestore 批量写入限制
     for (let i = 0; i < tracks.length; i += batchSize) {
@@ -344,15 +381,20 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
       
       for (const track of batchTracks) {
         const docRef = doc(tracksRef, track.id)
+        const updatedAt = new Date().toISOString()
+        // 使用 merge: true 确保不会覆盖其他字段（虽然理论上 track 对象应该是完整的）
         batch.set(docRef, {
           ...track,
-          updatedAt: new Date().toISOString()
-        })
+          updatedAt
+        }, { merge: true })
+        console.log(`[CloudSync] 同步作品到云端: ${track.name} (${track.id}), updatedAt: ${updatedAt}`)
       }
       
       await batch.commit()
       console.log(`[CloudSync] 已同步 ${Math.min(i + batchSize, tracks.length)}/${tracks.length} 个作品`)
     }
+    
+    console.log(`[CloudSync] 所有作品同步完成`)
   }
 
   /**
@@ -387,16 +429,24 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
 
   /**
    * 从云端加载作品
+   * 使用 getDocsFromServer 强制从服务器读取，避免缓存问题
    */
   async function loadTracksFromCloud(userId) {
     const tracksRef = collection(db, 'users', userId, 'tracks')
-    const snapshot = await getDocs(tracksRef)
+    
+    // 强制从服务器读取，不使用缓存，确保获取最新数据
+    const snapshot = await getDocsFromServer(tracksRef)
     
     const tracks = []
     snapshot.forEach(doc => {
-      tracks.push({ id: doc.id, ...doc.data() })
+      const trackData = { id: doc.id, ...doc.data() }
+      tracks.push(trackData)
+      const genre = trackData.metadata?.genre || trackData.genre || '未设置'
+      console.log(`[CloudSync] 从云端加载作品: ${trackData.name} (${trackData.id}), updatedAt: ${trackData.updatedAt}, genre: ${genre}`)
+      console.log(`[CloudSync] 作品数据结构: genre=${trackData.genre}, metadata.genre=${trackData.metadata?.genre}`)
     })
     
+    console.log(`[CloudSync] 从云端共加载 ${tracks.length} 个作品（强制从服务器读取）`)
     return tracks
   }
 

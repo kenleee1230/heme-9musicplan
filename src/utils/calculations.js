@@ -1,13 +1,25 @@
 import { TASKS, TASK_TIME_RATIOS, TOTAL_DAYS, MAX_HOURS_PER_DAY, TARGET_SONGS } from './constants'
 
 // 计算歌曲进度（基于已完成任务数）
+// 支持新旧数据结构：
+// 新格式：stepsCompleted, customSteps
+// 旧格式：tasks, customTasks
 export function calculateProgress(song) {
-  if (!song || !song.tasks) return 0
-  const completedCount = song.tasks.filter(Boolean).length
-  // 使用 customTasks 长度，如果没有则使用默认 TASKS 长度
-  const totalTasks = (Array.isArray(song.customTasks) && song.customTasks.length > 0)
-    ? song.customTasks.length
-    : TASKS.length
+  if (!song) return 0
+  
+  // 支持新数据结构：stepsCompleted 或旧数据结构：tasks
+  const completedSteps = song.stepsCompleted || song.tasks || []
+  if (!Array.isArray(completedSteps)) return 0
+  
+  const completedCount = completedSteps.filter(Boolean).length
+  
+  // 使用新数据结构：customSteps 或旧数据结构：customTasks
+  const totalTasks = (Array.isArray(song.customSteps) && song.customSteps.length > 0)
+    ? song.customSteps.length
+    : (Array.isArray(song.customTasks) && song.customTasks.length > 0)
+      ? song.customTasks.length
+      : TASKS.length
+  
   return totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0
 }
 
