@@ -26,10 +26,12 @@ export function formatTime(hours) {
 // 格式化时长：显示为"xx小时xx分钟"，如果小于1分钟则显示秒数
 export function formatDuration(hours) {
   if (!hours || hours === 0) return '0秒'
-  const totalSeconds = Math.round(hours * 3600)
+  // 使用更精确的计算，避免浮点数精度问题
+  // 先转换为毫秒，再转换为秒，避免精度丢失
+  const totalSeconds = Math.round(hours * 3600 * 1000) / 1000
   const h = Math.floor(totalSeconds / 3600)
   const m = Math.floor((totalSeconds % 3600) / 60)
-  const s = totalSeconds % 60
+  const s = Math.round(totalSeconds % 60) // 秒数四舍五入
   
   if (h > 0) {
     if (m > 0) {

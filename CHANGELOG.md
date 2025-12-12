@@ -2,7 +2,9 @@
 
 All notable changes to Pattr will be documented in this file.
 
-## [2.0.0] - 2025-12-11
+> 📖 **详细升级指南**：查看 [CHANGELOG_V2_FROM_V1.md](./CHANGELOG_V2_FROM_V1.md) 了解从 180 天音乐计划 (v1.0) 到 Pattr 3.0 的完整对比和升级说明。
+
+## [3.0.0] - 2025-12-11
 
 ### 🔧 修复
 
@@ -169,5 +171,5 @@ All notable changes to Pattr will be documented in this file.
 
 ---
 
-**注意**: 从 1.x 升级到 2.0 会自动迁移数据，无需手动操作。建议在升级前导出备份。
+**注意**: 从 1.x 升级到 3.0 会自动迁移数据，无需手动操作。建议在升级前导出备份。
 

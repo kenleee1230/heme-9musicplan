@@ -59,13 +59,13 @@
 <script setup>
 import { ref } from 'vue'
 import { useTimer } from '@/composables/useTimer'
-import { useSongsStore } from '@/stores/songs'
+import { useTracksStore } from '@/stores/tracks'
 import { useAuthStore } from '@/stores/auth'
 import { useFirestore } from '@/composables/useFirestore'
 import { formatDuration } from '@/utils/helpers'
 
 const { timer, timerDisplay, pauseTimer, resumeTimer, stopTimer } = useTimer()
-const songsStore = useSongsStore()
+const tracksStore = useTracksStore()
 const authStore = useAuthStore()
 
 const showDetailsDialog = ref(false)
@@ -138,7 +138,7 @@ async function saveRecord() {
 
   try {
     // 先保存到本地（离线优先）
-    const record = await songsStore.addTimerRecord(pendingRecord.value.songId, {
+    const record = await tracksStore.addTimerRecord(pendingRecord.value.songId, {
       startTime: pendingRecord.value.startTime,
       endTime: pendingRecord.value.endTime,
       duration: pendingRecord.value.hours,

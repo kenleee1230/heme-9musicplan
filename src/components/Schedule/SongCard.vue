@@ -40,7 +40,7 @@
       </div>
       <div class="info-item">
         <div class="info-label">已用时长</div>
-        <div class="info-value">{{ formatTimeSpent(song.timeSpent || 0) }}</div>
+        <div class="info-value">{{ formatTimeSpent(currentTrack.timeSpent || 0) }}</div>
       </div>
     </div>
     
@@ -204,10 +204,14 @@ const hasStartDate = computed(() => {
   return !isNaN(parsedDate.getTime())
 })
 
+// 获取最新的 track 数据（从 store 获取，确保数据是最新的）
+const currentTrack = computed(() => {
+  return tracksStore.getTrackById(props.song.id) || props.song
+})
+
 // 获取计时记录（从 store 获取最新数据）
 const timerRecords = computed(() => {
-  const latestSong = tracksStore.getTrackById(props.song.id) || props.song
-  return latestSong.timerRecords || []
+  return currentTrack.value.timerRecords || []
 })
 
 // 按时间倒序排列的计时记录
@@ -220,7 +224,14 @@ const sortedRecords = computed(() => {
 })
 
 function startTimer() {
-  startTimerFn(props.song.id, props.song.name)
+  // 确保使用 tracksStore 中的最新 track 数据
+  const track = tracksStore.getTrackById(props.song.id) || props.song
+  if (!track || !track.id) {
+    console.error('[SongCard] Track not found for timer:', props.song.id)
+    alert('无法启动计时器：歌曲数据不存在')
+    return
+  }
+  startTimerFn(track.id, track.name)
 }
 
 function toggleRecords() {

@@ -82,16 +82,16 @@ export const useTimerSyncStore = defineStore('timerSync', () => {
     isSyncing.value = true
     lastSyncError.value = null
 
-    const { useSongsStore } = await import('./songs')
-    const songsStore = useSongsStore()
+    const { useTracksStore } = await import('./tracks')
+    const tracksStore = useTracksStore()
 
     const itemsToProcess = [...syncQueue.value]
     
     for (const item of itemsToProcess) {
       try {
         // 获取最新的歌曲数据
-        const song = songsStore.getSongById(item.songId)
-        if (!song) {
+        const track = tracksStore.getTrackById(item.songId)
+        if (!track) {
           // 歌曲不存在，移除队列项
           removeFromQueue(item.id)
           continue
@@ -157,9 +157,9 @@ export const useTimerSyncStore = defineStore('timerSync', () => {
 
   // 获取歌曲（需要动态导入以避免循环依赖）
   async function getSongById(songId) {
-    const { useSongsStore } = await import('./songs')
-    const songsStore = useSongsStore()
-    return songsStore.getSongById(songId)
+    const { useTracksStore } = await import('./tracks')
+    const tracksStore = useTracksStore()
+    return tracksStore.getTrackById(songId)
   }
 
   return {

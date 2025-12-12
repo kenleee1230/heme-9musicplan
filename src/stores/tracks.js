@@ -257,25 +257,117 @@ export const useTracksStore = defineStore('tracks', () => {
   }
 
   // 添加计时记录
-  function addTimerRecord(trackId, record) {
-    const track = getTrackById(trackId)
-    if (!track) return false
+  async function addTimerRecord(trackId, recordData) {
+    // 确保 tracks 已加载
+    const savedTracks = loadFromStorage(PATTR_TRACKS_KEY, [])
+    
+    // 如果 tracks 未加载，先加载
+    if (tracks.value.length === 0) {
+      if (savedTracks.length > 0) {
+        console.warn('[TracksStore] Tracks not loaded, loading now...', {
+          savedTracksCount: savedTracks.length
+        })
+        loadTracks()
+      } else {
+        console.warn('[TracksStore] No tracks in storage and tracks not loaded')
+      }
+    }
+    
+    // 再次尝试查找（可能在加载后找到了）
+    let track = getTrackById(trackId)
+    
+    // 如果还是找不到，检查是否在保存的数据中
+    if (!track && savedTracks.length > 0) {
+      const savedTrack = savedTracks.find(t => (t.id || t.id) === trackId)
+      if (savedTrack) {
+        console.warn('[TracksStore] Track found in storage but not in loaded tracks, reloading...')
+        loadTracks()
+        track = getTrackById(trackId)
+      }
+    }
+    
+    if (!track) {
+      // 提供更详细的错误信息
+      const allTrackIds = tracks.value.map(t => t.id).filter(Boolean)
+      const savedTrackIds = savedTracks.map(t => t.id || t.id).filter(Boolean)
+      console.error(`[TracksStore] Track not found:`, {
+        trackId,
+        totalTracks: tracks.value.length,
+        savedTracksCount: savedTracks.length,
+        trackIds: allTrackIds.slice(0, 10), // 显示前10个ID
+        savedTrackIds: savedTrackIds.slice(0, 10),
+        trackIdInSaved: savedTrackIds.includes(trackId),
+        trackIdInLoaded: allTrackIds.includes(trackId),
+        allTracks: tracks.value.map(t => ({ id: t.id, name: t.name })).slice(0, 5)
+      })
+      throw new Error(`歌曲不存在: ${trackId}`)
+    }
 
-    track.timerRecords.push({
-      id: record.id || uuidv4(),
-      duration: record.duration,
-      startTime: record.startTime,
-      endTime: record.endTime,
-      createdAt: record.createdAt || new Date().toISOString(),
-      details: record.details || ''
-    })
+    // 验证时长（duration 应该是小时）
+    if (!recordData.duration || recordData.duration <= 0) {
+      throw new Error(`无效的计时时长: ${recordData.duration} 小时`)
+    }
 
-    // 更新总时长
-    track.timeSpent = track.timerRecords.reduce((sum, r) => sum + (r.duration || 0), 0) / 3600
+    const record = {
+      id: recordData.id || uuidv4(),
+      songId: trackId, // 保持向后兼容
+      duration: recordData.duration, // 小时
+      startTime: recordData.startTime,
+      endTime: recordData.endTime,
+      createdAt: recordData.createdAt || new Date().toISOString(),
+      details: recordData.details || ''
+    }
+
+    // 确保 timerRecords 数组存在
+    if (!track.timerRecords) {
+      track.timerRecords = []
+    }
+
+    track.timerRecords.push(record)
+
+    // 更新总时长（duration 已经是小时，直接累加）
+    track.timeSpent = (track.timeSpent || 0) + record.duration
     track.updatedAt = new Date().toISOString()
     
-    saveTracks()
-    return true
+    // 先保存到本地（离线优先）
+    try {
+      saveTracks()
+    } catch (error) {
+      // 如果保存失败，回滚更改
+      track.timerRecords.pop()
+      track.timeSpent = Math.max(0, (track.timeSpent || 0) - record.duration)
+      if (error.message && error.message.includes('存储空间')) {
+        throw error
+      }
+      throw new Error(`保存到本地存储失败: ${error.message || '未知错误'}`)
+    }
+    
+    // 如果已登录，尝试同步到云端（异步，不阻塞）
+    Promise.resolve().then(async () => {
+      try {
+        const { useAuthStore } = await import('./auth')
+        const authStore = useAuthStore()
+        if (authStore.isAuthenticated) {
+          const { useFirestore } = await import('@/composables/useFirestore')
+          const { updateSongInCloud } = useFirestore()
+          await updateSongInCloud(trackId, {
+            timerRecords: track.timerRecords,
+            timeSpent: track.timeSpent,
+            updatedAt: track.updatedAt
+          })
+        }
+      } catch (err) {
+        console.error('自动同步到云端失败，加入重试队列:', err)
+        // 同步失败，加入重试队列
+        const { useTimerSyncStore } = await import('./timerSync')
+        const timerSyncStore = useTimerSyncStore()
+        timerSyncStore.addToQueue(trackId, record)
+      }
+    }).catch(err => {
+      console.error('同步处理出错:', err)
+    })
+    
+    return record
   }
 
   // 删除计时记录
@@ -286,10 +378,11 @@ export const useTracksStore = defineStore('tracks', () => {
     const index = track.timerRecords.findIndex(r => r.id === recordId)
     if (index === -1) return false
 
+    const record = track.timerRecords[index]
     track.timerRecords.splice(index, 1)
     
-    // 重新计算总时长
-    track.timeSpent = track.timerRecords.reduce((sum, r) => sum + (r.duration || 0), 0) / 3600
+    // 重新计算总时长（duration 已经是小时，直接累加）
+    track.timeSpent = Math.max(0, (track.timeSpent || 0) - (record.duration || 0))
     track.updatedAt = new Date().toISOString()
     
     saveTracks()

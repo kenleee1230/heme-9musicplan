@@ -179,7 +179,7 @@ import { ref, watch, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { TASKS } from '@/utils/constants'
 import { calculateTaskHours, getStageFromLastCompletedTask, getSongStartDate } from '@/utils/calculations'
-import { useSongsStore } from '@/stores/songs'
+import { useTracksStore } from '@/stores/tracks'
 import { useSettingsStore } from '@/stores/settings'
 import { useProjectsStore } from '@/stores/projects'
 import { useWorkflowsStore } from '@/stores/workflows'
@@ -191,12 +191,12 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
-const songsStore = useSongsStore()
+const tracksStore = useTracksStore()
 const settingsStore = useSettingsStore()
 const projectsStore = useProjectsStore()
 const workflowsStore = useWorkflowsStore()
 const { startDate: projectStartDate } = storeToRefs(settingsStore)
-const { songs } = storeToRefs(songsStore)
+const { projectTracks: songs } = storeToRefs(tracksStore)
 const showTaskHours = ref(false)
 
 // 获取计时记录
@@ -496,11 +496,11 @@ function formatRecordDate(dateString) {
 async function deleteRecord(recordId) {
   if (!props.song) return
   if (confirm('确定要删除这条计时记录吗？')) {
-    await songsStore.deleteTimerRecord(props.song.id, recordId)
+    await tracksStore.deleteTimerRecord(props.song.id, recordId)
     // 更新表单中的已用时长
-    const updatedSong = songsStore.getSongById(props.song.id)
-    if (updatedSong) {
-      formData.value.timeSpent = updatedSong.timeSpent || 0
+    const updatedTrack = tracksStore.getTrackById(props.song.id)
+    if (updatedTrack) {
+      formData.value.timeSpent = updatedTrack.timeSpent || 0
     }
   }
 }

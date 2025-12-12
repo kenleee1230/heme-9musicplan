@@ -117,16 +117,29 @@ export function useTimer() {
   function stopTimer() {
     if (!timer.value.isRunning) return { hours: 0, songId: null, startTime: null, endTime: null }
 
+    // 先停止更新循环
     stopTimerTick()
 
+    // 获取结束时间
     const endTime = Date.now()
-    const finalElapsed = timer.value.isPaused 
-      ? timer.value.elapsedSeconds
-      : calculateElapsed(timer.value.startTime)
+    
+    // 计算最终已用时间（秒）
+    // 如果已暂停，使用已保存的 elapsedSeconds
+    // 如果正在运行，先更新一次 elapsedSeconds 确保与显示一致，然后使用它
+    let finalElapsed
+    if (timer.value.isPaused) {
+      finalElapsed = timer.value.elapsedSeconds
+    } else {
+      // 先更新一次 elapsedSeconds，确保与显示的时间一致
+      timer.value.elapsedSeconds = calculateElapsed(timer.value.startTime, endTime)
+      finalElapsed = timer.value.elapsedSeconds
+    }
 
     // 保留更多小数位，避免短时间被四舍五入为0
     // 例如：45秒 = 0.0125小时，如果只保留1位小数会变成0
-    const hours = Math.round((finalElapsed / 3600) * 100) / 100 // 保留2位小数
+    // 使用更高精度（保留4位小数），避免67秒被四舍五入为72秒
+    // 67秒 = 0.018611... 小时，保留2位小数会变成0.02小时（72秒）
+    const hours = Math.round((finalElapsed / 3600) * 10000) / 10000 // 保留4位小数
 
     const result = {
       songId: timer.value.songId,

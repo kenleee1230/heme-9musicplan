@@ -41,7 +41,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useSongsStore } from '@/stores/songs'
+import { useTracksStore } from '@/stores/tracks'
 import { formatDuration } from '@/utils/helpers'
 
 const props = defineProps({
@@ -57,13 +57,13 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
-const songsStore = useSongsStore()
+const tracksStore = useTracksStore()
 
 // 获取最新的歌曲数据（响应式）
 const currentSong = computed(() => {
   if (!props.song) return null
   // 从 store 中获取最新数据，确保数据是最新的
-  return songsStore.getSongById(props.song.id) || props.song
+  return tracksStore.getTrackById(props.song.id) || props.song
 })
 
 // 获取计时记录
@@ -98,7 +98,7 @@ function formatRecordDate(dateString) {
 async function deleteRecord(recordId) {
   if (!currentSong.value) return
   if (confirm('确定要删除这条计时记录吗？')) {
-    await songsStore.deleteTimerRecord(currentSong.value.id, recordId)
+    await tracksStore.deleteTimerRecord(currentSong.value.id, recordId)
     // 删除后会自动更新，因为 currentSong 是响应式的
   }
 }
