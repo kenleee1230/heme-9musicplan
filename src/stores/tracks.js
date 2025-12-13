@@ -444,6 +444,91 @@ export const useTracksStore = defineStore('tracks', () => {
     return record
   }
 
+  // 更新计时记录
+  async function updateTimerRecord(trackId, recordId, updates) {
+    const track = getTrackById(trackId)
+    if (!track || !track.timerRecords) {
+      throw new Error(`歌曲不存在或没有计时记录: ${trackId}`)
+    }
+
+    const recordIndex = track.timerRecords.findIndex(r => r.id === recordId)
+    if (recordIndex === -1) {
+      throw new Error(`计时记录不存在: ${recordId}`)
+    }
+
+    const record = track.timerRecords[recordIndex]
+    const oldDuration = record.duration
+    
+    // 更新记录
+    if (updates.details !== undefined) {
+      record.details = updates.details
+    }
+    
+    if (updates.duration !== undefined) {
+      // 验证新时长
+      if (updates.duration <= 0) {
+        throw new Error(`无效的计时时长: ${updates.duration} 小时`)
+      }
+      record.duration = updates.duration
+      
+      // 如果修改了时长，需要更新 startTime 和 endTime
+      if (updates.startTime !== undefined) {
+        record.startTime = updates.startTime
+      }
+      if (updates.endTime !== undefined) {
+        record.endTime = updates.endTime
+      } else if (updates.startTime !== undefined && record.startTime) {
+        // 如果只更新了 startTime，自动计算 endTime
+        const start = new Date(record.startTime)
+        const end = new Date(start.getTime() + updates.duration * 3600 * 1000)
+        record.endTime = end.toISOString()
+      }
+    }
+    
+    // 更新总时长（向后兼容）
+    track.timeSpent = Math.max(0, (track.timeSpent || 0) - oldDuration + record.duration)
+    
+    // 更新 updatedAt
+    track.updatedAt = new Date().toISOString()
+    record.updatedAt = new Date().toISOString()
+    
+    // 先保存到本地（离线优先）
+    try {
+      saveTracks()
+    } catch (error) {
+      // 如果保存失败，回滚更改
+      record.duration = oldDuration
+      track.timeSpent = Math.max(0, (track.timeSpent || 0) - record.duration + oldDuration)
+      if (error.message && error.message.includes('存储空间')) {
+        throw error
+      }
+      throw new Error(`保存到本地存储失败: ${error.message || '未知错误'}`)
+    }
+    
+    // 如果已登录，尝试同步到云端（异步，不阻塞）
+    Promise.resolve().then(async () => {
+      try {
+        const { useAuthStore } = await import('./auth')
+        const authStore = useAuthStore()
+        if (authStore.isAuthenticated) {
+          const { useFirestore } = await import('@/composables/useFirestore')
+          const { updateSongInCloud } = useFirestore()
+          await updateSongInCloud(trackId, {
+            timerRecords: track.timerRecords,
+            timeSpent: track.timeSpent,
+            updatedAt: track.updatedAt
+          })
+        }
+      } catch (err) {
+        console.error('自动同步到云端失败:', err)
+      }
+    }).catch(err => {
+      console.error('同步处理出错:', err)
+    })
+    
+    return record
+  }
+
   // 删除计时记录
   function deleteTimerRecord(trackId, recordId) {
     const track = getTrackById(trackId)
@@ -523,6 +608,7 @@ export const useTracksStore = defineStore('tracks', () => {
     getTracksByProject,
     deleteTracksByProject,
     addTimerRecord,
+    updateTimerRecord,
     deleteTimerRecord,
     exportData,
     importData,
