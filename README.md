@@ -249,6 +249,14 @@ Pattr 的设计理念是**灵活而不复杂**：
 
 > 我们制作的是有其命运轨迹的东西，我们无法保证它「好运」，但我们可以保证它「是当下我能做到的最好」，且「品质越来越好」。
 
+## 📚 文档
+
+- **[QUICK_START.md](./QUICK_START.md)** - 快速开始指南
+- **[docs/README.md](./docs/README.md)** - 完整文档索引
+- **[docs/changelog/CHANGELOG.md](./docs/changelog/CHANGELOG.md)** - 版本变更记录
+
+更多文档请查看 [docs/](./docs/) 目录。
+
 ## 📄 License
 
 MIT

@@ -2,7 +2,7 @@
 
 All notable changes to Pattr will be documented in this file.
 
-> 📖 **详细升级指南**：查看 [CHANGELOG_V2_FROM_V1.md](./CHANGELOG_V2_FROM_V1.md) 了解从 180 天音乐计划 (v1.0) 到 Pattr 3.0 的完整对比和升级说明。
+> 📖 **详细升级指南**：查看 [CHANGELOG_V2_FROM_V1.md](CHANGELOG_V2_FROM_V1.md) 了解从 180 天音乐计划 (v1.0) 到 Pattr 3.0 的完整对比和升级说明。
 
 ## [3.0.0] - 2025-12-11
 
@@ -105,15 +105,15 @@ All notable changes to Pattr will be documented in this file.
 
 ### 📚 文档
 
-新增以下文档：
-- `SECURITY_UPDATE_2025.md` - 安全更新详情
-- `DEPLOY_SECURITY_UPDATE.md` - 部署指南
-- `FIRESTORE_PERMISSION_FIX.md` - Firestore 权限修复指南
-- `QUICK_FIX_PERMISSION.md` - 快速修复指南
-- `IMPORT_EXPORT_SUMMARY.md` - 导入导出功能说明
-- `IMPORT_EXPORT_TEST.md` - 导入导出测试指南
-- `test-firestore-permission.html` - 权限诊断工具
-- `deploy-firestore-rules.sh` - 规则部署脚本
+新增以下文档（已整理到 `docs/` 目录）：
+- `docs/archive/SECURITY_UPDATE_2025.md` - 安全更新详情
+- `docs/deployment/DEPLOY_SECURITY_UPDATE.md` - 部署指南
+- `docs/fixes/FIRESTORE_PERMISSION_FIX.md` - Firestore 权限修复指南
+- `docs/fixes/QUICK_FIX_PERMISSION.md` - 快速修复指南
+- `docs/features/IMPORT_EXPORT_SUMMARY.md` - 导入导出功能说明
+- `docs/features/IMPORT_EXPORT_TEST.md` - 导入导出测试指南
+- `test-firestore-permission.html` - 权限诊断工具（根目录）
+- `deploy-firestore-rules.sh` - 规则部署脚本（根目录）
 
 ### ⚠️ 破坏性变更
 
