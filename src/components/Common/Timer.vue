@@ -93,12 +93,22 @@ function stop() {
       return
     }
 
-    // 检查时长是否为0或负数
-    if (!result.hours || result.hours <= 0) {
-      alert('本次计时时长为0，无法保存记录。\n\n请确保计时器运行了至少几秒钟。')
-      console.warn('时长为0，不保存记录:', result)
+    // 检查时长是否为0或负数（更严格的验证，支持小时级数据）
+    // 使用 Number() 确保是数字类型，并检查是否为 NaN
+    const hoursValue = Number(result.hours)
+    if (isNaN(hoursValue) || hoursValue <= 0) {
+      console.error('计时时长验证失败:', {
+        originalHours: result.hours,
+        convertedHours: hoursValue,
+        isNaN: isNaN(hoursValue),
+        result: result
+      })
+      alert(`本次计时时长为${result.hours}，无法保存记录。\n\n请确保计时器运行了至少几秒钟。`)
       return
     }
+    
+    // 确保 hours 是有效的数字
+    result.hours = hoursValue
 
     // 检查时长限制
     const isDev = import.meta.env.DEV // 开发环境
@@ -134,14 +144,33 @@ async function saveRecord() {
     return
   }
 
+  // 再次验证时长（双重检查）
+  const hoursValue = Number(pendingRecord.value.hours)
+  if (isNaN(hoursValue) || hoursValue <= 0) {
+    console.error('保存前验证失败:', {
+      pendingRecord: pendingRecord.value,
+      hours: pendingRecord.value.hours,
+      convertedHours: hoursValue
+    })
+    alert(`计时时长为${pendingRecord.value.hours}，无法保存。请重新开始计时。`)
+    return
+  }
+
   syncStatus.value = 'saving'
 
   try {
+    console.log('开始保存计时记录:', {
+      songId: pendingRecord.value.songId,
+      hours: hoursValue,
+      startTime: pendingRecord.value.startTime,
+      endTime: pendingRecord.value.endTime
+    })
+    
     // 先保存到本地（离线优先）
     const record = await tracksStore.addTimerRecord(pendingRecord.value.songId, {
       startTime: pendingRecord.value.startTime,
       endTime: pendingRecord.value.endTime,
-      duration: pendingRecord.value.hours,
+      duration: hoursValue, // 使用验证后的数值
       details: timerDetails.value.trim()
     })
 

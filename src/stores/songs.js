@@ -341,20 +341,37 @@ export const useSongsStore = defineStore('songs', () => {
       throw new Error(`歌曲不存在: ${songId}`)
     }
 
-    // 验证时长
-    if (!recordData.duration || recordData.duration <= 0) {
+    // 验证时长（支持小时级数据）
+    // 使用更严格的验证，确保是有效的正数
+    const durationValue = Number(recordData.duration)
+    if (isNaN(durationValue) || durationValue <= 0) {
+      console.error('[SongsStore] 无效的计时时长:', {
+        originalDuration: recordData.duration,
+        convertedDuration: durationValue,
+        isNaN: isNaN(durationValue),
+        recordData: recordData
+      })
       throw new Error(`无效的计时时长: ${recordData.duration} 小时`)
     }
+    
+    // 使用验证后的数值
+    const validatedDuration = durationValue
 
     const record = {
       id: generateId(),
       songId: songId,
       startTime: recordData.startTime,
       endTime: recordData.endTime,
-      duration: recordData.duration, // 小时
+      duration: validatedDuration, // 小时（已验证的数值）
       details: recordData.details || '', // 明细文本
       createdAt: new Date().toISOString()
     }
+    
+    console.log('[SongsStore] 添加计时记录:', {
+      songId,
+      duration: validatedDuration,
+      recordId: record.id
+    })
 
     // 确保 timerRecords 数组存在
     if (!song.timerRecords) {
@@ -364,7 +381,7 @@ export const useSongsStore = defineStore('songs', () => {
     song.timerRecords.push(record)
     
     // 更新总时长（向后兼容）
-    song.timeSpent = (song.timeSpent || 0) + record.duration
+    song.timeSpent = (song.timeSpent || 0) + validatedDuration
     
     // 更新 updatedAt
     song.updatedAt = new Date().toISOString()

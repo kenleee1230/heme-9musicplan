@@ -100,6 +100,9 @@
       @close="closeTimerRecordsModal"
     />
     
+    <!-- 更新提示 -->
+    <UpdatePrompt />
+    
     <!-- 计时器 -->
     <Timer />
     
@@ -129,6 +132,7 @@ import Timer from './components/Common/Timer.vue'
 import SongCard from './components/Schedule/SongCard.vue'
 import SongModal from './components/Schedule/SongModal.vue'
 import TimerRecordsModal from './components/Schedule/TimerRecordsModal.vue'
+import UpdatePrompt from './components/Common/UpdatePrompt.vue'
 import LoginModal from './components/Auth/LoginModal.vue'
 import RegisterModal from './components/Auth/RegisterModal.vue'
 import CircleOfFifths from './components/Theory/CircleOfFifths.vue'

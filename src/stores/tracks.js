@@ -377,20 +377,37 @@ export const useTracksStore = defineStore('tracks', () => {
       throw new Error(`歌曲不存在: ${trackId}`)
     }
 
-    // 验证时长（duration 应该是小时）
-    if (!recordData.duration || recordData.duration <= 0) {
+    // 验证时长（duration 应该是小时，支持小时级数据）
+    // 使用更严格的验证，确保是有效的正数
+    const durationValue = Number(recordData.duration)
+    if (isNaN(durationValue) || durationValue <= 0) {
+      console.error('[TracksStore] 无效的计时时长:', {
+        originalDuration: recordData.duration,
+        convertedDuration: durationValue,
+        isNaN: isNaN(durationValue),
+        recordData: recordData
+      })
       throw new Error(`无效的计时时长: ${recordData.duration} 小时`)
     }
+    
+    // 使用验证后的数值
+    const validatedDuration = durationValue
 
     const record = {
       id: recordData.id || uuidv4(),
       songId: trackId, // 保持向后兼容
-      duration: recordData.duration, // 小时
+      duration: validatedDuration, // 小时（已验证的数值）
       startTime: recordData.startTime,
       endTime: recordData.endTime,
       createdAt: recordData.createdAt || new Date().toISOString(),
       details: recordData.details || ''
     }
+    
+    console.log('[TracksStore] 添加计时记录:', {
+      trackId,
+      duration: validatedDuration,
+      recordId: record.id
+    })
 
     // 确保 timerRecords 数组存在
     if (!track.timerRecords) {
@@ -400,7 +417,7 @@ export const useTracksStore = defineStore('tracks', () => {
     track.timerRecords.push(record)
 
     // 更新总时长（duration 已经是小时，直接累加）
-    track.timeSpent = (track.timeSpent || 0) + record.duration
+    track.timeSpent = (track.timeSpent || 0) + validatedDuration
     track.updatedAt = new Date().toISOString()
     
     // 先保存到本地（离线优先）
@@ -409,7 +426,7 @@ export const useTracksStore = defineStore('tracks', () => {
     } catch (error) {
       // 如果保存失败，回滚更改
       track.timerRecords.pop()
-      track.timeSpent = Math.max(0, (track.timeSpent || 0) - record.duration)
+      track.timeSpent = Math.max(0, (track.timeSpent || 0) - validatedDuration)
       if (error.message && error.message.includes('存储空间')) {
         throw error
       }
