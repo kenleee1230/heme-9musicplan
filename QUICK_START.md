@@ -259,8 +259,7 @@ npm run dev
 ---
 
 遇到问题？查看完整文档：
-- [README.md](./README.md) - 项目说明
-- [docs/README.md](./docs/README.md) - 完整文档索引
-- [docs/deployment/PRODUCTION_DEPLOYMENT.md](./docs/deployment/PRODUCTION_DEPLOYMENT.md) - 部署指南
-- [docs/archive/PROJECT_SUMMARY.md](./docs/archive/PROJECT_SUMMARY.md) - 项目总结
+- README.md - 项目说明
+- DEPLOYMENT.md - 部署指南
+- PROJECT_SUMMARY.md - 项目总结
 

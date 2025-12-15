@@ -2,8 +2,11 @@
   <header>
     <div class="header-top">
       <div class="header-brand">
-        <h1>Pattr</h1>
-        <p class="header-tagline">音乐创作项目管理<br>总之，不挥棒的话，什么都不会发生的。</p>
+        <div class="brand-logo-wrapper">
+          <img src="/pattr.png" alt="Pattr Logo" class="brand-logo" />
+          <!--<h1>Pattr</h1>-->
+        </div>
+        <p class="header-tagline">计划是为了拥抱变化。<br>总之，不挥棒的话，什么都不会发生的。</p>
       </div>
       
       <div class="header-navigation">
@@ -188,16 +191,40 @@ function importData() {
   flex-wrap: wrap;
 }
 
+.brand-logo-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+  margin-left: -10px;
+  margin-right: -10px;
+}
+
+.brand-logo {
+  height: 70px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
 .header-brand h1 {
   font-size: 2em;
-  margin: 0 0 4px 0;
+  margin: 0;
   color: #1a1a1a;
+}
+
+.header-brand {
+  position: relative;
 }
 
 .header-brand .header-tagline {
   font-size: 0.85em;
   color: #666;
-  margin: 0;
+  margin: 4px 0 0 -2px;
+}
+
+.header-stats {
+  margin-left: -2px;
 }
 
 .header-navigation {
@@ -216,6 +243,7 @@ function importData() {
 
 .header-project-actions {
   margin-top: 12px;
+  margin-left: -12px;
   display: flex;
   gap: 10px;
 }
@@ -252,6 +280,14 @@ function importData() {
   .header-top {
     flex-direction: column;
     align-items: flex-start;
+  }
+  
+  .brand-logo {
+    height: 56px;
+  }
+  
+  .header-brand h1 {
+    font-size: 1.5em;
   }
   
   .header-navigation {
