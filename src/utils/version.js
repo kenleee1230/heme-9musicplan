@@ -7,7 +7,7 @@ const VERSION_CHECK_INTERVAL = 5 * 60 * 1000 // 5分钟检查一次
 
 // 从 package.json 读取的版本号（构建时注入）
 // 在开发环境中，如果没有定义，使用默认值
-let APP_VERSION = '3.0.0'
+let APP_VERSION = '3.0.1'
 try {
   // @ts-ignore
   if (typeof __APP_VERSION__ !== 'undefined') {
